@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101211" />
+    <meta
+      name="description"
+      content="R-Vocoder: transforma tu voz, toca acordes MIDI y explora 100 presets. Descarga la beta para macOS en AU, AU MIDI, VST3 y Standalone."
+    />
+    <meta property="og:title" content="R-Vocoder — Tu voz, fuera de órbita." />
+    <meta
+      property="og:description"
+      content="Vocoder creativo para macOS. Voz original, sintetizador MIDI y 100 presets para encontrar tu sonido."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://raulg0mez.github.io/vocoder/" />
+    <link rel="canonical" href="https://raulg0mez.github.io/vocoder/" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <title>R-Vocoder — Tu voz, fuera de órbita.</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
+    <header class="site-header wrap">
+      <a class="brand" href="#" aria-label="R-Vocoder, inicio"
+        >R<span>/</span>VOCODER<span class="brand-by">BY RSTK</span></a
+      >
+      <nav aria-label="Navegación principal">
+        <a href="#sonido">Escúchalo</a>
+        <a href="#instrumento">El plugin</a>
+        <a class="nav-download" href="#descarga"
+          >Descargar <span aria-hidden="true">↘</span></a
+        >
+      </nav>
+    </header>
+    <main id="contenido">
+      <section class="hero wrap" aria-labelledby="hero-title">
+        <div class="hero-topline">
+          <span class="eyebrow">VOCAL EXPERIMENTS / VOL. 01</span
+          ><span class="release-tag">v0.2.0 · BETA PARA MACOS</span>
+        </div>
+        <div class="hero-heading">
+          <h1 id="hero-title">TU VOZ,<br /><span>FUERA DE ÓRBITA.</span></h1>
+          <div class="hero-copy">
+            <p>
+              De una voz a un coro de robots. De una frase a algo que nunca
+              habías escuchado.
+            </p>
+            <p class="muted">
+              Un vocoder para jugar con el carácter, las notas y los límites de
+              tu voz.
+            </p>
+            <a
+              class="button primary"
+              href="https://github.com/RAULG0MEZ/vocoder/releases/download/v0.2.0/R-Vocoder-0.2.0-macOS.zip"
+              >Descargar para macOS <span aria-hidden="true">↓</span></a
+            >
+            <span class="download-meta">Apple Silicon + Intel · AU / VST3</span>
+          </div>
+        </div>
+        <figure class="product-shot">
+          <img
+            src="%BASE_URL%images/plugin.png"
+            alt="R-Vocoder en modo Voz: preset French Chrome, controles de carácter, claridad, formantes y anchura."
+            width="2200"
+            height="1400"
+            fetchpriority="high"
+          />
+          <figcaption>
+            <span>EL INSTRUMENTO. SIN FILTROS.</span
+            ><span>Interfaz real · R-Vocoder 0.2.0</span>
+          </figcaption>
+        </figure>
+        <div class="spec-strip" aria-label="Características principales">
+          <p><strong>100</strong><span>presets originales</span></p>
+          <p><strong>64</strong><span>bandas como máximo</span></p>
+          <p><strong>03</strong><span>formas de crear</span></p>
+          <p><strong>01</strong><span>voz. La tuya.</span></p>
+        </div>
+      </section>
+      <section
+        id="sonido"
+        class="sound-section wrap section-space"
+        aria-labelledby="sound-title"
+      >
+        <div class="section-intro">
+          <span class="eyebrow">01 / DALE PLAY</span>
+          <h2 id="sound-title">
+            LAS PALABRAS SON LAS MISMAS.<br /><span class="muted"
+              >TODO LO DEMÁS, CAMBIA.</span
+            >
+          </h2>
+          <p>
+            Escucha la misma frase sin procesar, con el vocoder clásico y con el
+            modo Voz. Los ejemplos salen del motor del plugin.
+          </p>
+        </div>
+        <div class="demo-panel">
+          <div class="demo-heading">
+            <span class="eyebrow">UNA VOZ. TRES VERSIONES.</span
+            ><span class="demo-format">FRENCH CHROME / DEMO</span>
+          </div>
+          <fieldset class="demo-options">
+            <legend class="sr-only">Versión del audio</legend>
+            <label
+              ><input type="radio" name="demo" value="original" checked /><span
+                ><b>01</b> Sin procesar</span
+              ></label
+            >
+            <label
+              ><input type="radio" name="demo" value="synth" /><span
+                ><b>02</b> Vocoder + Synth</span
+              ></label
+            >
+            <label
+              ><input type="radio" name="demo" value="voice" /><span
+                ><b>03</b> Modo Voz</span
+              ></label
+            >
+          </fieldset>
+          <div class="waveform" aria-hidden="true">
+            <canvas id="waveform"></canvas>
+          </div>
+          <audio
+            id="demo-audio"
+            controls
+            preload="metadata"
+            src="%BASE_URL%audio/original.mp3"
+            aria-label="Ejemplo de voz sin procesar"
+          ></audio>
+          <p id="demo-caption" class="demo-caption" aria-live="polite">
+            La grabación de referencia, sin efectos.
+          </p>
+          <p id="audio-error" class="audio-error" role="status" hidden>
+            No se pudo cargar el audio. Puedes
+            <a id="audio-file" href="%BASE_URL%audio/original.mp3"
+              >abrir el ejemplo directamente</a
+            >.
+          </p>
+          <noscript
+            ><p>
+              También puedes escuchar
+              <a href="%BASE_URL%audio/synth.mp3">Vocoder + Synth</a> y
+              <a href="%BASE_URL%audio/voice.mp3">Modo Voz</a>.
+            </p></noscript
+          >
+        </div>
+        <p class="sample-note">
+          Frase de muestra generada por voz sintética. Preset French Chrome; el
+          volumen puede variar entre modos.
+        </p>
+      </section>
+      <section
+        id="instrumento"
+        class="instrument-section section-space"
+        aria-labelledby="instrument-title"
+      >
+        <div class="wrap">
+          <div class="section-intro">
+            <span class="eyebrow">02 / ENCUENTRA TU FRECUENCIA</span>
+            <h2 id="instrument-title">
+              UNA VOZ.<br /><span class="accent">MUCHAS IDENTIDADES.</span>
+            </h2>
+          </div>
+          <div class="modes">
+            <article>
+              <span class="mode-number">01 / VOZ</span>
+              <h3>Tu voz, transformada.</h3>
+              <p>
+                Conserva la melodía de la grabación y modifica su timbre, tamaño
+                y carácter. Sin añadir un sintetizador y sin necesitar MIDI.
+              </p>
+            </article>
+            <article>
+              <span class="mode-number">02 / SYNTH</span>
+              <h3>Toca lo que cantas.</h3>
+              <p>
+                El sonido clásico del vocoder con un sintetizador interno. Toca
+                acordes MIDI, apila voces en unísono o deja sonar un Drone.
+              </p>
+            </article>
+            <article>
+              <span class="mode-number">03 / EXTERNO</span>
+              <h3>Conecta otro universo.</h3>
+              <p>
+                Usa un synth, una guitarra u otra señal como fuente sonora. Tu
+                voz le da las palabras. Disponible en el AU de efecto y VST3.
+              </p>
+            </article>
+          </div>
+          <div class="detail-row">
+            <div class="detail-copy">
+              <span class="eyebrow">DE LA IDEA AL SONIDO</span>
+              <h3>MENOS MENÚS.<br />MÁS MÚSICA.</h3>
+              <p>
+                Elige la voz de la pista o del sidechain. Dale forma con ocho
+                controles principales. Cambia de preset sin perder tus
+                conexiones.
+              </p>
+              <p class="muted">
+                Robots, coros, bajos vocales y texturas extrañas. Cien puntos de
+                partida; lo que viene después es tuyo.
+              </p>
+              <a
+                class="text-link"
+                href="https://github.com/RAULG0MEZ/vocoder/blob/main/README.md"
+                >Explorar la guía del plugin
+                <span aria-hidden="true">↗</span></a
+              >
+            </div>
+            <figure>
+              <img
+                src="%BASE_URL%images/midi.png"
+                alt="Vista Synth del plugin con el teclado iluminando un acorde MIDI y los botones Pista y Sidechain."
+                width="2200"
+                height="1400"
+                loading="lazy"
+              />
+              <figcaption>
+                El teclado refleja las notas MIDI que recibe.
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+      <section
+        id="descarga"
+        class="download-section wrap section-space"
+        aria-labelledby="download-title"
+      >
+        <div class="download-main">
+          <span class="eyebrow">03 / LLÉVALO A TU SESIÓN</span>
+          <h2 id="download-title">
+            DALE OTRA<br /><span class="accent">VIDA A TU VOZ.</span>
+          </h2>
+          <p>
+            Descarga el paquete completo para macOS.<br />Sin cuenta, sin
+            conexión permanente.
+          </p>
+          <a
+            class="button primary download-large"
+            href="https://github.com/RAULG0MEZ/vocoder/releases/download/v0.2.0/R-Vocoder-0.2.0-macOS.zip"
+            >Descargar R-Vocoder <span aria-hidden="true">↓</span></a
+          >
+          <p class="download-meta">
+            v0.2.0 beta · ZIP de 56 MB · macOS 11 o posterior
+          </p>
+          <a
+            class="text-link small"
+            href="https://github.com/RAULG0MEZ/vocoder/releases/tag/v0.2.0"
+            >Notas de la versión y verificación del archivo ↗</a
+          >
+        </div>
+        <div class="package-info">
+          <span class="eyebrow">DENTRO DEL PAQUETE</span>
+          <dl>
+            <div>
+              <dt>AU</dt>
+              <dd>Efecto para pistas de audio</dd>
+            </div>
+            <div>
+              <dt>AU MIDI</dt>
+              <dd>Vocoder MIDI para Logic Pro</dd>
+            </div>
+            <div>
+              <dt>VST3</dt>
+              <dd>Para DAWs compatibles en macOS</dd>
+            </div>
+            <div>
+              <dt>Standalone</dt>
+              <dd>Aplicación independiente</dd>
+            </div>
+          </dl>
+          <p class="muted small">
+            Compilación universal para Apple Silicon e Intel. Esta descarga es
+            exclusivamente para Mac.
+          </p>
+          <p class="beta-note">
+            <strong>Una beta para explorar.</strong> Los plugins superaron auval
+            y pluginval nivel 10. Sigue pendiente completar las pruebas de uso
+            en Logic y Ableton.
+            <a
+              href="https://github.com/RAULG0MEZ/vocoder/blob/main/Docs/RELEASE-0.2.md"
+              >Ver validación</a
+            >.
+          </p>
+        </div>
+        <div class="install-guide">
+          <h3>DEL ZIP A TU PRIMER ROBOT.</h3>
+          <ol>
+            <li>
+              <span>01</span>
+              <div>
+                <h4>Descomprime e instala.</h4>
+                <p>
+                  Abre el ZIP y ejecuta <code>Install.command</code>. Copia los
+                  plugins a tu carpeta de usuario; no necesita contraseña de
+                  administrador.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span>02</span>
+              <div>
+                <h4>Vuelve a abrir tu DAW.</h4>
+                <p>
+                  En una pista de audio, carga R-Vocoder como efecto. Selecciona
+                  <strong>Pista + Voz</strong> para transformar tu grabación o
+                  <strong>Synth</strong> para el vocoder clásico.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span>03</span>
+              <div>
+                <h4>¿Quieres tocar con MIDI?</h4>
+                <p>
+                  En Logic, carga <strong>R-Vocoder MIDI</strong> en una pista
+                  de instrumento, selecciona tu voz en Side Chain y toca
+                  mientras se reproduce.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+        <div class="install-details">
+          <details>
+            <summary>macOS muestra una advertencia al abrirlo</summary>
+            <div>
+              <p>
+                Esta beta tiene firma local y todavía no está notarizada por
+                Apple. macOS puede bloquear el instalador o los plugins
+                descargados.
+              </p>
+              <p>
+                Después de intentar abrirlo, revisa
+                <strong
+                  >Ajustes del Sistema → Privacidad y seguridad → Abrir
+                  igualmente</strong
+                >. Usa esta opción solo si reconoces el archivo y confías en su
+                origen. No necesitas desactivar la protección de tu Mac.
+              </p>
+              <p>
+                Si tu DAW sigue bloqueando el plugin, consulta la
+                <a href="https://support.apple.com/es-mx/102445"
+                  >guía de Apple</a
+                >
+                y la
+                <a
+                  href="https://github.com/RAULG0MEZ/vocoder/blob/main/README.md"
+                  >guía de instalación</a
+                >.
+              </p>
+            </div>
+          </details>
+          <details>
+            <summary>¿Necesito un teclado MIDI para usarlo?</summary>
+            <div>
+              <p>
+                No. El modo <strong>Voz</strong> procesa la grabación y conserva
+                su melodía. En Synth puedes usar Drone, el teclado en pantalla o
+                las notas MIDI de tu DAW. Las notas MIDI controlan el
+                sintetizador; no afinan la grabación en modo Voz.
+              </p>
+            </div>
+          </details>
+        </div>
+      </section>
+    </main>
+    <footer class="wrap">
+      <a class="brand" href="#">R<span>/</span>VOCODER</a
+      ><span class="footer-credit">HECHO PARA EXPERIMENTAR. / RSTK</span>
+      <div>
+        <a href="https://github.com/RAULG0MEZ/vocoder">GitHub ↗</a
+        ><a
+          href="https://github.com/RAULG0MEZ/vocoder/blob/main/THIRD_PARTY_NOTICES.md"
+          >Licencias</a
+        >
+      </div>
+    </footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

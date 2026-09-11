@@ -4,6 +4,14 @@ Vocoder creativo de RSTK para macOS. Incluye AU para pistas de audio, AU control
 por MIDI para Logic, VST3 y una aplicación independiente. Compilación universal
 Apple Silicon + Intel, macOS 11 o posterior. Versión 0.2.0.
 
+**[Web y descarga](https://raulg0mez.github.io/vocoder/)** ·
+**[Descargar ZIP para macOS](https://github.com/RAULG0MEZ/vocoder/releases/download/v0.2.0/R-Vocoder-0.2.0-macOS.zip)** ·
+[Release 0.2.0 y SHA-256](https://github.com/RAULG0MEZ/vocoder/releases/tag/v0.2.0)
+
+Para el paquete descargado: descomprime el ZIP, ejecuta `Install.command` y vuelve
+a abrir tu DAW. Esta beta tiene firma ad hoc y no está notarizada por Apple; consulta
+la sección de instalación de la web si macOS bloquea su apertura.
+
 **Estado:** compilado, instalado y aprobado por auval y pluginval nivel 10.
 Disponible para evaluación; falta completar la audición y el recorrido real dentro
 de Logic/Ableton antes de declararlo listo para producción. Consulta los
@@ -174,6 +182,7 @@ no se certifica una compilación de Windows que no se haya ejecutado.
 - [Arquitectura DSP, sincronía y latencia](Docs/ARCHITECTURE.md).
 - [Ubicación de datos y configuración](Docs/CONFIGURATION.md).
 - [Dependencias y licencias](THIRD_PARTY_NOTICES.md).
+- [Mantenimiento de la web y publicación en GitHub Pages](Docs/WEBSITE.md).
 
 Los IDs de automatización son permanentes y APVTS guarda el estado de la sesión.
 Se reportan **16 muestras de latencia**; la señal dry recibe la misma compensación.
