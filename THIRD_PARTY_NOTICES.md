@@ -32,3 +32,12 @@ All R-Vocoder DSP, UI, parameter definitions and factory preset recipes are orig
 project code. Mathematical descriptions in the research references were used to
 guide the design. No third-party preset banks, graphics or recorded musical performances
 are included.
+
+## Download website
+
+The website uses Space Grotesk, copyright Florian Karsten, under the SIL Open Font
+License 1.1. The font is self-hosted from `@fontsource-variable/space-grotesk`; its
+full notice is distributed at `website/public/licenses/space-grotesk.txt`.
+Vite, TypeScript and Playwright are website build/validation dependencies only;
+they are not linked into the audio plugin. Their package metadata and license files
+are retained by npm. No analytics, external font service or user account is used.
