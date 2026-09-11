@@ -1,0 +1,12 @@
+PASS VST3 R-Vocoder @ 44100 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=47.0497
+PASS VST3 R-Vocoder @ 48000 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=50.5585
+PASS VST3 R-Vocoder @ 88200 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=80.1129
+PASS VST3 R-Vocoder @ 96000 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=84.899
+PASS AudioUnit R-Vocoder @ 44100 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=47.0497
+PASS AudioUnit R-Vocoder @ 48000 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=50.5585
+PASS AudioUnit R-Vocoder @ 88200 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=80.1129
+PASS AudioUnit R-Vocoder @ 96000 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=84.899
+PASS AudioUnit R-Vocoder MIDI @ 44100 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=47.0497
+PASS AudioUnit R-Vocoder MIDI @ 48000 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=50.5585
+PASS AudioUnit R-Vocoder MIDI @ 88200 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=80.1129
+PASS AudioUnit R-Vocoder MIDI @ 96000 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=84.899

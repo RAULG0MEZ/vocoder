@@ -1,0 +1,2 @@
+# Preserve the validators' exact console output, including trailing spaces.
+Docs/Validation/*.txt -whitespace
