@@ -77,9 +77,11 @@ class SynthCarrier
         }
         else if (size >= 3 && type == 0xb0)
         {
-            if (data[1] == 64)
+            if (data[1] == 64 || data[1] == 121)
             {
-                sustain[static_cast<std::size_t>(ch)] = data[2] >= 64;
+                sustain[static_cast<std::size_t>(ch)] = data[1] == 64 && data[2] >= 64;
+                if (data[1] == 121)
+                    bend[static_cast<std::size_t>(ch)] = 0;
                 for (auto &v : voices)
                     if (v.channel == ch && !v.keyDown && !sustain[static_cast<std::size_t>(ch)] &&
                         v.stage != 0)

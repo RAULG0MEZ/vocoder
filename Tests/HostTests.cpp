@@ -54,6 +54,8 @@ int main(int argc, char **argv)
                 buses.inputBuses.set(1, juce::AudioChannelSet::stereo());
             buses.outputBuses.set(0, juce::AudioChannelSet::stereo());
             require(plugin->setBusesLayout(buses), "Enable external sidechain");
+            parameter(*plugin, "Wet only", 0);
+            parameter(*plugin, "MIDI gate", 0);
             parameter(*plugin, "Mix", 0);
             const int before = plugin->getLatencySamples();
             plugin->prepareToPlay(sampleRate, 256);
@@ -156,6 +158,15 @@ int main(int argc, char **argv)
             const auto noVoice = render(true, false);
             require(original > 1 && std::abs(original - originalWithNotes) < 1e-6 && noVoice < 1e-7,
                     "Original voice needs audio, never needs or adds a synthesiser waveform");
+            parameter(*plugin, "MIDI gate", 1);
+            parameter(*plugin, "Mix", 0);
+            parameter(*plugin, "Voice mix", 1);
+            parameter(*plugin, "Texture noise", 1);
+            const auto gatedDry = render(false, true);
+            const auto playedDry = render(true, true);
+            require(gatedDry == 0, "New MIDI gate blocks direct voice and noise through the actual wrapper");
+            if (plugin->acceptsMidi())
+                require(playedDry > .1, "Real wrapper MIDI opens the direct voice path");
             std::cout << "PASS " << descriptions[0]->pluginFormatName << " " << descriptions[0]->name << " @ "
                       << sampleRate << " Hz: cached latency before prepare=" << before
                       << ", running latency=16, measured dry impulse=16, sidechain energy=" << energy

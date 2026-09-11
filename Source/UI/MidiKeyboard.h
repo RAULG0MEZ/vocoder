@@ -5,6 +5,13 @@
 class RVKeyboard final : public juce::MidiKeyboardComponent
 {
   public:
+    std::function<void()> onUserNote;
+    bool mouseDownOnKey(int, const juce::MouseEvent &) override
+    {
+        if (onUserNote)
+            onUserNote();
+        return true;
+    }
     RVKeyboard(juce::MidiKeyboardState &mouseKeys, const rv::MidiMonitor &incoming)
         : MidiKeyboardComponent(mouseKeys, horizontalKeyboard), monitor(incoming)
     {

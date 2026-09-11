@@ -2,15 +2,32 @@
 #include "CharacterFX.h"
 #include "FilterBank.h"
 #include "Gate.h"
+#include "MidiGate.h"
 #include "SynthCarrier.h"
 #include <atomic>
 namespace rv::dsp
 {
 struct Meters
 {
-    std::atomic<float> input{0}, modulator{0}, carrier{0}, output{0}, gate{0}, correlation{1}, unvoiced{0};
+    std::atomic<float> input{0}, modulator{0}, carrier{0}, output{0}, gate{0}, correlation{1}, unvoiced{0},
+        keyGate{0};
+    std::atomic<bool> midiHeld{false};
     std::array<std::atomic<float>, 64> bands{};
     std::atomic<int> bandCount{24};
+    void clear() noexcept
+    {
+        input.store(0);
+        modulator.store(0);
+        carrier.store(0);
+        output.store(0);
+        gate.store(0);
+        keyGate.store(0);
+        unvoiced.store(0);
+        correlation.store(1);
+        midiHeld.store(false);
+        for (auto &band : bands)
+            band.store(0);
+    }
 };
 class VocoderEngine
 {
@@ -24,6 +41,7 @@ class VocoderEngine
         current = target;
         smoothing = coefficient(12, sr);
         gate.prepare(sr);
+        keyGate.prepare(sr);
         synth.prepare(sr);
         fx.prepare(sr);
         dcCoefficient = std::exp(-2 * pi * 15 / static_cast<float>(sr));
@@ -49,6 +67,7 @@ class VocoderEngine
             b.reset();
         gate.reset();
         synth.reset();
+        keyGate.reset(target[P::midiGate] > .5f && target[P::synthMode] > .5f);
         fx.reset();
         modEnvelope.reset();
         highEnvelope.reset();
@@ -66,9 +85,11 @@ class VocoderEngine
         phase = 0;
         prevMod = 0;
         cross = energyL = energyR = 0;
+        inputPeak = modPeak = carPeak = outPeak = 0;
         dcIn = dcOut = {};
         bypassBlend = target[P::bypass];
         voiceBlend = target[P::voiceMode];
+        wetOnlyBlend = target[P::wetOnly];
         routeWeights.fill(0);
         routeWeights[static_cast<std::size_t>(std::clamp(static_cast<int>(target[P::route]), 0, 3))] = 1;
     }
@@ -86,6 +107,14 @@ class VocoderEngine
     }
     void midi(const std::uint8_t *data, int length)
     {
+        if (length < 1 || (length >= 3 && (data[1] > 127 || data[2] > 127)))
+            return;
+        keyGate.midi(data, length);
+        if (data[0] == 0xff)
+        {
+            synth.reset();
+            return;
+        }
         synth.midi(data, length);
         synth.configure(current, filterMod);
     }
@@ -117,6 +146,9 @@ class VocoderEngine
             carrier = carrier + c * w;
         }
         const float gateGain = gate.process(mod), env = modEnvelope.process(mod);
+        wetOnlyBlend = target[P::wetOnly] + smoothing * (wetOnlyBlend - target[P::wetOnly]);
+        if (std::abs(wetOnlyBlend - target[P::wetOnly]) < .00001f)
+            wetOnlyBlend = target[P::wetOnly];
         const Stereo voiceDry{voiceDryL.process(inGain > 0 ? voice.l / inGain : 0),
                               voiceDryR.process(inGain > 0 ? voice.r / inGain : 0)};
         voiceBlend = target[P::voiceMode] + smoothing * (voiceBlend - target[P::voiceMode]);
@@ -152,7 +184,7 @@ class VocoderEngine
         const float amount = current[P::amount];
         wet = wet * amount + carrier * ((1 - amount) * env * gateGain * 2);
         wet = wet + Stereo{consonant, consonant};
-        wet = wet + Stereo{mod, mod} * (current[P::modMix] * gateGain) +
+        wet = wet + Stereo{mod, mod} * (current[P::modMix] * gateGain * (1 - wetOnlyBlend)) +
               carrier * (current[P::carMix] * gateGain);
         const auto processedVoice =
             gatedVoice * (1 - amount) + shapedVoice * amount + Stereo{consonant, consonant} * .35f;
@@ -174,7 +206,7 @@ class VocoderEngine
         // Factory trim was calibrated for vocoding. It must not over-amplify a
         // full-level original voice, nor make a voice-only preset depend on it.
         wet = dcRemoved * lerp(presetGain, 1.f, voiceBlend);
-        const float mix = current[P::mix];
+        const float mix = lerp(current[P::mix], 1.f, wetOnlyBlend);
         Stereo out = voiceDry * std::cos(mix * pi * 0.5f) + wet * std::sin(mix * pi * 0.5f);
         out = out * outGain;
         // Unity below -1.4 dBFS, monotonic soft knee above it, finite bounded output.
@@ -185,6 +217,7 @@ class VocoderEngine
             return a <= 0.85f ? x : std::copysign(0.85f + 0.15f * std::tanh((a - 0.85f) / 0.15f), x);
         };
         out = {protect(out.l), protect(out.r)};
+        out = out * keyGate.process(target[P::midiGate] > .5f && target[P::synthMode] > .5f);
         const float bypassTarget = target[P::bypass];
         bypassBlend = bypassTarget + smoothing * (bypassBlend - bypassTarget);
         out = out * (1 - bypassBlend) + dry * bypassBlend;
@@ -208,6 +241,8 @@ class VocoderEngine
         m.carrier.store(carPeak, std::memory_order_relaxed);
         m.output.store(outPeak, std::memory_order_relaxed);
         m.gate.store(gate.getGain(), std::memory_order_relaxed);
+        m.keyGate.store(keyGate.value(), std::memory_order_relaxed);
+        m.midiHeld.store(keyGate.isOpen(), std::memory_order_relaxed);
         m.unvoiced.store(unvoicedAmount, std::memory_order_relaxed);
         m.correlation.store(
             energyL * energyR > 1e-15f ? std::clamp(cross / std::sqrt(energyL * energyR), -1.0f, 1.0f) : 1,
@@ -257,6 +292,7 @@ class VocoderEngine
         outGain = dbGain(current[P::outputGain]);
         presetGain = dbGain(current[P::presetLevel]);
         gate.configure(current);
+        keyGate.configure(current[P::midiGateRelease]);
         synth.configure(current, filterMod);
         fx.configure(current);
         const int n = bandCounts[static_cast<std::size_t>(static_cast<int>(target[P::bands]))];
@@ -288,6 +324,7 @@ class VocoderEngine
     Params target, current, topology;
     std::array<FilterBank, 2> banks;
     Gate gate;
+    MidiGate keyGate;
     SynthCarrier synth;
     CharacterFX fx;
     Envelope modEnvelope, highEnvelope, zcEnvelope;
@@ -301,7 +338,7 @@ class VocoderEngine
     std::uint64_t clock = 0;
     bool transition = false;
     float fade = 0, smoothing = 0, inGain = 1, outGain = 1, motionValue = 0, filterMod = 0, lfoValue = 0,
-          prevMod = 0, unvoicedAmount = 0, bypassBlend = 0, voiceBlend = 0;
+          prevMod = 0, unvoicedAmount = 0, bypassBlend = 0, voiceBlend = 0, wetOnlyBlend = 0;
     float inputPeak = 0, modPeak = 0, carPeak = 0, outPeak = 0, cross = 0, energyL = 0, energyR = 0;
 };
 } // namespace rv::dsp

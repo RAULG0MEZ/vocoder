@@ -46,10 +46,11 @@ falta crear un token personal ni un secret del repositorio.
 El botón apunta al archivo de una release explícita, no al código fuente ni a un
 artefacto de Actions que caduque o requiera iniciar sesión:
 
-https://github.com/RAULG0MEZ/vocoder/releases/download/v0.2.0/R-Vocoder-0.2.0-macOS.zip
+https://github.com/RAULG0MEZ/vocoder/releases/download/v0.3.0/R-Vocoder-0.3.0-macOS.zip
 
-La release incluye `SHA256SUMS.txt` para verificar el ZIP. El paquete 0.2.0 es el
-binario universal previamente validado; este trabajo no modifica su motor ni su firma.
+La release incluye `SHA256SUMS.txt` para verificar el ZIP. El paquete 0.3.0 es el
+binario universal validado con teclado permanente, gráfico interactivo y puerta MIDI.
+Conserva firma ad hoc y sigue sin notarización de Apple.
 Los binarios se alojan en Releases y no se añaden al historial de Git.
 
 Para una versión nueva:
@@ -65,7 +66,7 @@ el binario, asignar una versión nueva para conservar enlaces y checksums reprod
 
 ## Contenido y alcance
 
-- Las capturas provienen de la interfaz real de la versión 0.2.0.
+- Las capturas provienen de la interfaz real de la versión 0.3.0.
 - Los audios son MP3 a 192 kb/s de la frase sintética de validación y sus renders
   French Chrome. Se ofrecen la referencia, Synth y Voz original. Las formas de onda
   se calculan a partir de los archivos, no representan procesamiento en el navegador.

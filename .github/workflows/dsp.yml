@@ -1,0 +1,18 @@
+name: Validate audio engine
+on:
+  push:
+    branches: [main]
+    paths: ['Source/**', 'Tests/**', 'CMakeLists.txt', '.github/workflows/dsp.yml']
+  pull_request:
+    paths: ['Source/**', 'Tests/**', 'CMakeLists.txt', '.github/workflows/dsp.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dsp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: cmake -S . -B build-dsp -DRV_BUILD_PLUGINS=OFF -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build-dsp --parallel 2
+      - run: ctest --test-dir build-dsp --output-on-failure

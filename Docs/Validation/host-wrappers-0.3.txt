@@ -1,0 +1,24 @@
+MIDI probe VST3 R-Vocoder: acceptsMidi=1, noNotes=3.81913e-12, withNotes=270.489
+PASS VST3 R-Vocoder @ 44100 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=47.0497, MIDI chord energy=270.489, original voice energy=5122.69
+MIDI probe VST3 R-Vocoder: acceptsMidi=1, noNotes=3.81876e-12, withNotes=287.172
+PASS VST3 R-Vocoder @ 48000 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=50.5585, MIDI chord energy=287.172, original voice energy=5120.33
+MIDI probe VST3 R-Vocoder: acceptsMidi=1, noNotes=3.81722e-12, withNotes=459
+PASS VST3 R-Vocoder @ 88200 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=80.1129, MIDI chord energy=459, original voice energy=5103.11
+MIDI probe VST3 R-Vocoder: acceptsMidi=1, noNotes=3.81945e-12, withNotes=489.923
+PASS VST3 R-Vocoder @ 96000 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=84.899, MIDI chord energy=489.923, original voice energy=5103.17
+MIDI probe AudioUnit R-Vocoder: acceptsMidi=0, noNotes=3.81913e-12, withNotes=3.81913e-12
+PASS AudioUnit R-Vocoder @ 44100 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=47.0497, MIDI chord energy=3.81913e-12, original voice energy=5122.69
+MIDI probe AudioUnit R-Vocoder: acceptsMidi=0, noNotes=3.81876e-12, withNotes=3.81876e-12
+PASS AudioUnit R-Vocoder @ 48000 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=50.5585, MIDI chord energy=3.81876e-12, original voice energy=5120.33
+MIDI probe AudioUnit R-Vocoder: acceptsMidi=0, noNotes=3.81722e-12, withNotes=3.81722e-12
+PASS AudioUnit R-Vocoder @ 88200 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=80.1129, MIDI chord energy=3.81722e-12, original voice energy=5103.11
+MIDI probe AudioUnit R-Vocoder: acceptsMidi=0, noNotes=3.81945e-12, withNotes=3.81945e-12
+PASS AudioUnit R-Vocoder @ 96000 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=84.899, MIDI chord energy=3.81945e-12, original voice energy=5103.17
+MIDI probe AudioUnit R-Vocoder MIDI: acceptsMidi=1, noNotes=3.81913e-12, withNotes=270.489
+PASS AudioUnit R-Vocoder MIDI @ 44100 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=47.0497, MIDI chord energy=270.489, original voice energy=5122.69
+MIDI probe AudioUnit R-Vocoder MIDI: acceptsMidi=1, noNotes=3.81876e-12, withNotes=287.172
+PASS AudioUnit R-Vocoder MIDI @ 48000 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=50.5585, MIDI chord energy=287.172, original voice energy=5120.33
+MIDI probe AudioUnit R-Vocoder MIDI: acceptsMidi=1, noNotes=3.81722e-12, withNotes=459
+PASS AudioUnit R-Vocoder MIDI @ 88200 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=80.1129, MIDI chord energy=459, original voice energy=5103.11
+MIDI probe AudioUnit R-Vocoder MIDI: acceptsMidi=1, noNotes=3.81945e-12, withNotes=489.923
+PASS AudioUnit R-Vocoder MIDI @ 96000 Hz: cached latency before prepare=0, running latency=16, measured dry impulse=16, sidechain energy=84.899, MIDI chord energy=489.923, original voice energy=5103.17

@@ -15,10 +15,12 @@ class RVocoderProcessor final : public juce::AudioProcessor, private juce::MidiK
     {
         engine.reset();
         midiMonitor.reset();
+        meters.clear();
     }
     void releaseResources() override
     {
         midiMonitor.reset();
+        meters.clear();
     }
     bool isBusesLayoutSupported(const BusesLayout &) const override;
     void processBlock(juce::AudioBuffer<float> &, juce::MidiBuffer &) override;
@@ -69,6 +71,10 @@ class RVocoderProcessor final : public juce::AudioProcessor, private juce::MidiK
     void loadPreset(const rv::Preset &, bool preserveRouting = true);
     void resetSound();
     void setRouting(rv::Routing);
+    void panic() noexcept
+    {
+        midiOverflow.store(true);
+    }
     static constexpr bool midiEdition = RV_MIDI_EDITION != 0;
     juce::String presetName() const;
     juce::String presetId() const;

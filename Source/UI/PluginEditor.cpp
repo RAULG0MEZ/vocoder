@@ -107,16 +107,20 @@ void RVLookAndFeel::drawButtonBackground(juce::Graphics &g, juce::Button &b, con
                     : (down ? line : (hover ? juce::Colour(0xff30393b) : juce::Colour(0xff232a2d))));
     g.fillRoundedRectangle(b.getLocalBounds().toFloat(), 5);
 }
-ParameterPanel::ParameterPanel(RVocoderProcessor &p) : processor(p)
+ParameterPanel::ParameterPanel(RVocoderProcessor &p, bool macros) : processor(p), macrosOnly(macros)
 {
     for (std::size_t i = 0; i < parameterCount; ++i)
     {
         const auto &d = definitions[i];
-        if (i == index(P::route) || i == index(P::bypass) || i == index(P::voiceMode))
+        if ((juce::String(d.group) == "Main") != macrosOnly || i == index(P::route) ||
+            i == index(P::bypass) || i == index(P::voiceMode) || i == index(P::synthMode) ||
+            i == index(P::midiGate) || i == index(P::wetOnly))
             continue;
         auto c = std::make_unique<Control>();
         c->id = static_cast<P>(i);
         c->slider.setName(d.name);
+        c->slider.setComponentID(d.id);
+        c->choice.setComponentID(d.id);
         c->choice.setTitle(d.name);
         c->label.setText(d.name, juce::dontSendNotification);
         c->label.setFont(font(13));
@@ -172,56 +176,63 @@ void ParameterPanel::showPage(int v)
 void ParameterPanel::layout(int width, int availableHeight)
 {
     headings.clear();
-    const int mainRowHeight = std::clamp((availableHeight - 24) / 2, 110, 160);
-    const int cols = 4, cell = std::max(140, (width - 36) / cols);
-    int y = 8, col = 0;
+    const int cols = macrosOnly ? 8 : (width >= 390 ? 3 : 2);
+    const int cell = std::max(1, (width - 16) / cols);
+    const int rowHeight = macrosOnly ? availableHeight - 6 : 112;
+    int y = 6, col = 0;
     juce::String last;
-    const auto values = processor.readParameters();
     for (auto &c : controls)
     {
         const auto group = juce::String(definitions[index(c->id)].group);
-        bool visible = (page == 0 && group == "Main") ||
-                       (page == 1 && (group == "Analysis" || group == "Intelligibility" ||
-                                      group == "Identity" || group == "Gate" || group == "Blend")) ||
-                       (page == 2 && group == "Synth") ||
-                       (page == 3 && (group == "Stereo" || group == "Character" || group == "Tone" ||
-                                      group == "Routing")) ||
-                       (page == 4 && group == "Motion");
+        const bool visible =
+            macrosOnly ||
+            (page == 0 && (group == "Analysis" || group == "Intelligibility" || group == "Identity")) ||
+            (page == 1 && group == "Synth") ||
+            (page == 2 && (group == "Stereo" || group == "Character" || group == "Tone")) ||
+            (page == 3 && group == "Motion") ||
+            (page == 4 &&
+             (group == "Gate" || group == "Blend" || group == "Routing" || group == "Performance"));
         c->label.setVisible(visible);
         c->slider.setVisible(visible && !c->combo);
         c->choice.setVisible(visible && c->combo);
         if (!visible)
             continue;
-        if (page != 0 && last != group)
+        if (!macrosOnly && last != group)
         {
-            if (col != 0)
+            if (col)
             {
-                y += 130;
+                y += rowHeight;
                 col = 0;
             }
-            headings.push_back({group.toUpperCase(), y});
-            y += 34;
+            juce::String title = group.toUpperCase();
+            if (group == "Gate")
+                title = "PUERTA POR NIVEL DE VOZ";
+            if (group == "Performance")
+                title = "CIERRE AL SOLTAR LAS TECLAS";
+            if (group == "Blend")
+                title = "MEZCLA DE FUENTES";
+            if (group == "Analysis")
+                title = juce::String::fromUTF8("ANÁLISIS Y ENVOLVENTE");
+            headings.push_back({title, y});
+            y += 30;
             last = group;
         }
-        const int height = page == 0 ? mainRowHeight : 130, x = 18 + col * cell;
-        c->label.setBounds(x, y, cell, 23);
+        const int x = 8 + col * cell;
+        c->label.setBounds(x, y, cell, 22);
         if (c->combo)
-        {
-            c->choice.setBounds(x + 8, y + 48, cell - 16, 32);
-            c->choice.setSelectedId(static_cast<int>(values[c->id] - definitions[index(c->id)].min) + 1,
-                                    juce::dontSendNotification);
-        }
+            c->choice.setBounds(x + 4, y + 44, cell - 8, 30);
         else
-            c->slider.setBounds(x + 6, y + 24, cell - 12, height - 30);
+            c->slider.setBounds(x + 2, y + 22, cell - 4, rowHeight - 24);
         if (++col == cols)
         {
             col = 0;
-            y += height;
+            y += rowHeight;
         }
     }
     if (col)
-        y += page == 0 ? mainRowHeight : 130;
-    setSize(width, std::max(240, y + 16));
+        y += rowHeight;
+    setSize(width, macrosOnly ? availableHeight : y + 12);
+    refreshChoices();
     repaint();
 }
 void ParameterPanel::refreshChoices()
@@ -234,8 +245,18 @@ void ParameterPanel::refreshChoices()
                                     juce::dontSendNotification);
         const auto group = juce::String(definitions[index(c->id)].group);
         const bool originalVoice = values[P::voiceMode] > .5f;
-        const bool enabled = !(originalVoice && (group == "Synth" || c->id == P::modMix ||
-                                                 c->id == P::carMix || c->id == P::presetLevel));
+        const bool wetOnly = values[P::wetOnly] > .5f;
+        const bool internal = Routing::from(values).sound == SoundSource::synth;
+        const bool enabled =
+            !(group == "Synth" && !internal) &&
+            !(originalVoice && (c->id == P::modMix || c->id == P::carMix || c->id == P::presetLevel)) &&
+            !(wetOnly && (c->id == P::mix || c->id == P::modMix)) &&
+            !((c->id == P::rootNote || c->id == P::chord) && values[P::synthMode] > .5f);
+        if (c->id == P::mix)
+        {
+            c->slider.setValue(wetOnly ? 1.f : values[P::mix], juce::dontSendNotification);
+            c->slider.setTooltip("Original / efecto. Desactiva Solo efecto para mezclar la voz limpia.");
+        }
         c->slider.setEnabled(enabled);
         c->choice.setEnabled(enabled);
         c->label.setAlpha(enabled ? 1.f : .4f);
@@ -253,16 +274,17 @@ void ParameterPanel::paint(juce::Graphics &g)
     }
 }
 RVocoderEditor::RVocoderEditor(RVocoderProcessor &p)
-    : AudioProcessorEditor(p), processor(p), panel(p), keyboard(p.keyboard, p.midiMonitor)
+    : AudioProcessorEditor(p), processor(p), panel(p), macros(p, true), canvas(p),
+      keyboard(p.keyboard, p.midiMonitor)
 {
     setLookAndFeel(&look);
     setOpaque(true);
     setResizable(true, true);
-    setResizeLimits(960, 640, 1600, 1100);
+    setResizeLimits(1080, 760, 1800, 1200);
     brand.setText("R / VOCODER", juce::dontSendNotification);
-    brand.setFont(font(25, true));
+    brand.setFont(font(22, true));
     addAndMakeVisible(brand);
-    presetTitle.setFont(font(29, true));
+    presetTitle.setFont(font(28, true));
     addAndMakeVisible(presetTitle);
     subtitle.setFont(font(12));
     subtitle.setColour(juce::Label::textColourId, muted);
@@ -283,7 +305,7 @@ RVocoderEditor::RVocoderEditor(RVocoderProcessor &p)
     search.onTextChange = [this] { filterPresets(); };
     addAndMakeVisible(search);
     list.setModel(this);
-    list.setRowHeight(43);
+    list.setRowHeight(46);
     list.setOutlineThickness(0);
     addAndMakeVisible(list);
     for (auto *b : {&prev, &next, &random, &favorite, &onlyFavorites, &save, &remove, &reset})
@@ -371,13 +393,87 @@ RVocoderEditor::RVocoderEditor(RVocoderProcessor &p)
         soundButtons[2].setTooltip(juce::String::fromUTF8(
             "Para combinar voz y carrier externos usa la edición R-Vocoder de Audio FX."));
     }
-    const std::array<juce::String, 5> names{"MAIN", "VOCODER", "SYNTH", "FX", "MOTION"};
+    const std::array<juce::String, 5> names{"VOZ", "SYNTH", "FX", "MOTION", "SALIDA"};
     for (int i = 0; i < 5; ++i)
     {
         tabs[static_cast<std::size_t>(i)].setButtonText(names[static_cast<std::size_t>(i)]);
+        tabs[static_cast<std::size_t>(i)].setComponentID("detail-" + juce::String(i));
         tabs[static_cast<std::size_t>(i)].onClick = [this, i] { setPage(i); };
         addAndMakeVisible(tabs[static_cast<std::size_t>(i)]);
     }
+    playLabel.setText(juce::String::fromUTF8("ACTIVACIÓN"), juce::dontSendNotification);
+    keyboardLabel.setText("TECLADO MIDI", juce::dontSendNotification);
+    canvasTitle.setText("FORMA DE LA VOZ", juce::dontSendNotification);
+    inspectorTitle.setText("AJUSTES", juce::dontSendNotification);
+    for (auto *label : {&playLabel, &keyboardLabel, &canvasTitle, &inspectorTitle})
+    {
+        label->setFont(font(11, true));
+        label->setColour(juce::Label::textColourId, muted);
+        addAndMakeVisible(label);
+    }
+    auto setPlay = [this](int mode)
+    {
+        for (auto id : {P::synthMode, P::midiGate})
+        {
+            if (id == P::midiGate && mode == 0)
+                continue;
+            auto *parameter = processor.apvts.getParameter(definitions[index(id)].id);
+            parameter->beginChangeGesture();
+            parameter->setValueNotifyingHost(static_cast<float>(mode));
+            parameter->endChangeGesture();
+        }
+        timerCallback();
+    };
+    for (int i = 0; i < 2; ++i)
+    {
+        auto &button = playButtons[static_cast<std::size_t>(i)];
+        button.setButtonText(i == 0 ? "Continuo" : "Con teclas");
+        button.onClick = [setPlay, i] { setPlay(i); };
+        button.setTooltip(
+            i == 0 ? "Sonar mientras llega voz. El synth usa su nota o acorde Drone."
+                   : "Usar MIDI para las notas del synth y para abrir la salida de cualquier modo.");
+        addAndMakeVisible(button);
+    }
+    keyboard.onUserNote = [this, setPlay]
+    {
+        if (processor.readParameters()[P::synthMode] < .5f)
+            setPlay(1);
+    };
+    keyboard.setComponentID("performance-keyboard");
+    keyGateToggle.setTooltip("En Con teclas, cierra toda la salida al soltar la ultima nota o el pedal. La "
+                             "cola se ajusta en SALIDA.");
+    wetOnlyToggle.setTooltip("Evita la mezcla directa de voz original. Se conserva al cambiar de preset. Mix "
+                             "queda al 100% de efecto.");
+    addAndMakeVisible(keyGateToggle);
+    addAndMakeVisible(wetOnlyToggle);
+    keyGateAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        processor.apvts, "midiGate", keyGateToggle);
+    wetOnlyAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        processor.apvts, "wetOnly", wetOnlyToggle);
+    xyButton.setToggleState(true, juce::dontSendNotification);
+    xyButton.onClick = [this]
+    {
+        canvas.setMode(false);
+        xyButton.setToggleState(true, juce::dontSendNotification);
+        spectrumButton.setToggleState(false, juce::dontSendNotification);
+    };
+    spectrumButton.onClick = [this]
+    {
+        canvas.setMode(true);
+        xyButton.setToggleState(false, juce::dontSendNotification);
+        spectrumButton.setToggleState(true, juce::dontSendNotification);
+    };
+    panicButton.setTooltip("Soltar todas las notas MIDI, incluido sustain. No silencia una pista externa que "
+                           "suene por separado.");
+    panicButton.onClick = [this]
+    {
+        processor.keyboard.allNotesOff(0);
+        processor.panic();
+    };
+    for (auto *button : {&xyButton, &spectrumButton, &panicButton})
+        addAndMakeVisible(*button);
+    addAndMakeVisible(macros);
+    addAndMakeVisible(canvas);
     addAndMakeVisible(bypass);
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         processor.apvts, "bypass", bypass);
@@ -386,15 +482,15 @@ RVocoderEditor::RVocoderEditor(RVocoderProcessor &p)
     viewport.setScrollBarThickness(8);
     addAndMakeVisible(viewport);
     keyboard.setAvailableRange(0, 127);
-    keyboard.setLowestVisibleKey(36);
+    keyboard.setLowestVisibleKey(33);
     keyboard.setOctaveForMiddleC(4);
-    keyboard.setKeyWidth(24);
+    keyboard.setKeyWidth(22);
     keyboard.setColour(juce::MidiKeyboardComponent::whiteNoteColourId, juce::Colour(0xffaeb7b3));
     keyboard.setColour(juce::MidiKeyboardComponent::blackNoteColourId, bg);
     keyboard.setColour(juce::MidiKeyboardComponent::keyDownOverlayColourId, accent);
     keyboard.setWantsKeyboardFocus(false);
     addAndMakeVisible(keyboard);
-    setSize(1100, 700);
+    setSize(1320, 840);
     filterPresets();
     setPage(0);
     startTimerHz(25);
@@ -417,100 +513,104 @@ void RVocoderEditor::setPage(int p)
 }
 void RVocoderEditor::resized()
 {
-    const int w = getWidth(), h = getHeight(), left = 246;
-    brand.setBounds(22, 20, 224, 40);
-    for (int i = 0; i < 5; ++i)
-        tabs[static_cast<std::size_t>(i)].setBounds(left + 24 + i * 94, 25, 86, 30);
-    bypass.setBounds(w - 120, 24, 96, 32);
-    category.setBounds(18, 113, 208, 32);
-    search.setBounds(18, 155, 208, 33);
-    list.setBounds(10, 200, 226, h - 354);
-    onlyFavorites.setBounds(18, h - 144, 100, 29);
-    favorite.setBounds(126, h - 144, 100, 29);
-    save.setBounds(18, h - 105, 100, 29);
-    remove.setBounds(126, h - 105, 100, 29);
-    inputLabel.setBounds(left + 24, 85, 180, 18);
-    soundLabel.setBounds(left + 220, 85, 250, 18);
+    const int w = getWidth(), h = getHeight(), left = 204, x = left + 22, width = w - x - 22;
+    brand.setBounds(18, 18, 190, 35);
+    presetTitle.setBounds(x, 15, width - 310, 35);
+    subtitle.setBounds(x, 50, width - 280, 22);
+    prev.setBounds(w - 310, 21, 32, 30);
+    next.setBounds(w - 272, 21, 32, 30);
+    random.setBounds(w - 234, 21, 82, 30);
+    reset.setBounds(w - 145, 21, 60, 30);
+    bypass.setBounds(w - 90, 52, 84, 28);
+    category.setBounds(16, 102, 172, 30);
+    search.setBounds(16, 141, 172, 32);
+    list.setBounds(10, 185, 184, h - 335);
+    onlyFavorites.setBounds(16, h - 136, 82, 30);
+    favorite.setBounds(104, h - 136, 84, 30);
+    save.setBounds(16, h - 97, 82, 30);
+    remove.setBounds(104, h - 97, 84, 30);
+    const int inputW = width * 24 / 100, soundW = width * 31 / 100;
+    const int soundX = x + inputW + 16, playX = soundX + soundW + 16;
+    inputLabel.setBounds(x, 91, inputW, 18);
+    soundLabel.setBounds(soundX, 91, soundW, 18);
+    playLabel.setBounds(playX, 91, w - playX - 22, 18);
     for (int i = 0; i < 2; ++i)
-        inputButtons[static_cast<std::size_t>(i)].setBounds(left + 24 + i * 86, 105, 84, 30);
+        inputButtons[static_cast<std::size_t>(i)].setBounds(x + i * (inputW / 2), 114, inputW / 2 - 3, 32);
     for (int i = 0; i < 3; ++i)
-        soundButtons[static_cast<std::size_t>(i)].setBounds(left + 220 + i * 78, 105, 76, 30);
-    reset.setBounds(w - 100, 105, 76, 30);
-    presetTitle.setBounds(left + 20, 143, w - left - 275, 42);
-    subtitle.setBounds(left + 24, 187, w - left - 215, 24);
-    midiStatus.setBounds(w - 190, 187, 162, 24);
-    prev.setBounds(w - 216, 151, 36, 30);
-    next.setBounds(w - 174, 151, 36, 30);
-    random.setBounds(w - 130, 151, 106, 30);
-    viewport.setBounds(left + 8, 210, w - left - 26, h - 390);
+        soundButtons[static_cast<std::size_t>(i)].setBounds(soundX + i * (soundW / 3), 114, soundW / 3 - 3,
+                                                            32);
+    const int playW = std::min(120, (w - playX - 22) / 2);
+    for (int i = 0; i < 2; ++i)
+        playButtons[static_cast<std::size_t>(i)].setBounds(playX + i * playW, 114, playW - 3, 32);
+    keyboardLabel.setBounds(x, 164, 116, 24);
+    keyGateToggle.setBounds(x + 118, 162, 146, 28);
+    wetOnlyToggle.setBounds(x + 272, 162, 122, 28);
+    midiStatus.setBounds(w - 266, 164, 136, 24);
+    panicButton.setBounds(w - 117, 162, 95, 28);
+    keyboard.setBounds(x, 198, width, 62);
+    keyboard.setVisible(true);
+    macros.setBounds(x - 8, 276, width + 16, 136);
+    macros.layout(width + 16, 136);
+    const int detailW = std::clamp(width * 41 / 100, 338, 480), detailX = w - 22 - detailW;
+    canvasTitle.setBounds(x, 431, detailX - x - 200, 26);
+    xyButton.setBounds(detailX - 187, 429, 52, 28);
+    spectrumButton.setBounds(detailX - 128, 429, 103, 28);
+    canvas.setBounds(x, 469, detailX - x - 24, h - 589);
+    inspectorTitle.setBounds(detailX, 431, 80, 26);
+    for (int i = 0; i < 5; ++i)
+        tabs[static_cast<std::size_t>(i)].setBounds(detailX + i * (detailW / 5), 464, detailW / 5 - 3, 28);
+    viewport.setBounds(detailX, 500, detailW, h - 620);
     panel.layout(viewport.getWidth() - 10, viewport.getHeight());
-    keyboard.setBounds(left + 30, h - 174, w - left - 58, 50);
-    keyboard.setVisible(currentPage == 2);
-    status.setBounds(left + 24, h - 113, w - left - 48, 22);
+    status.setBounds(x, h - 108, width, 26);
     repaint();
 }
 void RVocoderEditor::paint(juce::Graphics &g)
 {
-    const int w = getWidth(), h = getHeight(), left = 246;
+    const int w = getWidth(), h = getHeight(), left = 204, x = left + 22, width = w - x - 22;
     g.fillAll(bg);
     g.setColour(sidebar);
-    g.fillRect(0, 80, left, h - 80);
+    g.fillRect(0, 0, left, h);
     g.setColour(line);
+    g.drawVerticalLine(left, 0, static_cast<float>(h));
     g.drawHorizontalLine(79, 0, static_cast<float>(w));
-    g.drawVerticalLine(left, 80, static_cast<float>(h));
-    g.setFont(font(11, true));
+    g.drawHorizontalLine(421, static_cast<float>(x), static_cast<float>(w - 22));
+    g.drawHorizontalLine(h - 77, static_cast<float>(x), static_cast<float>(w - 22));
     g.setColour(muted);
-    g.drawText("SOUND LIBRARY  /  100 FACTORY", 20, 84, 220, 20, juce::Justification::centredLeft);
-    g.drawText("RSTK   /   " JucePlugin_VersionString, 22, h - 38, 180, 20, juce::Justification::centredLeft);
-    if (currentPage != 2)
-    {
-        const int count = processor.meters.bandCount.load();
-        const float plotX = static_cast<float>(left + 30), plotW = static_cast<float>(w - left - 58),
-                    base = static_cast<float>(h - 129), barW = plotW / static_cast<float>(count);
-        g.setColour(muted);
-        g.setFont(font(10));
-        g.drawText("SPECTRAL ENVELOPES", left + 30, h - 174, 220, 16, juce::Justification::centredLeft);
-        for (int i = 0; i < count; ++i)
-        {
-            const float v = std::clamp(
-                std::sqrt(processor.meters.bands[static_cast<std::size_t>(i)].load()) * 100, 2.0f, 30.0f);
-            g.setColour(accent.withAlpha(0.35f + 0.5f * static_cast<float>(i) / static_cast<float>(count)));
-            g.fillRoundedRectangle(plotX + static_cast<float>(i) * barW, base - v, std::max(2.0f, barW - 3),
-                                   v, 2);
-        }
-    }
-    g.setColour(line);
-    g.drawHorizontalLine(h - 95, static_cast<float>(left + 24), static_cast<float>(w - 24));
+    g.setFont(font(11, true));
+    g.drawText("BIBLIOTECA / 100 PRESETS", 18, 78, 180, 20, juce::Justification::centredLeft);
+    g.drawText("RSTK   /   " JucePlugin_VersionString, 18, h - 38, 180, 20, juce::Justification::centredLeft);
     const std::array<juce::String, 4> labels{processor.midiEdition ? "SIDECHAIN" : "PISTA", "VOZ", "SONIDO",
                                              "SALIDA"};
-    const int cell = (w - left - 58) / 4;
+    const int cell = width / 4;
     for (int i = 0; i < 4; ++i)
     {
-        int x = left + 30 + i * cell;
-        const float level = displayMeters[static_cast<std::size_t>(i)],
-                    db = juce::Decibels::gainToDecibels(level, -72.0f);
+        const int mx = x + i * cell;
+        const auto db = juce::Decibels::gainToDecibels(displayMeters[static_cast<std::size_t>(i)], -72.f);
         g.setFont(font(10, true));
         g.setColour(muted);
-        g.drawText(labels[static_cast<std::size_t>(i)], x, h - 80, cell - 20, 18,
-                   juce::Justification::centredLeft);
+        g.drawText(labels[static_cast<std::size_t>(i)], mx, h - 69, cell - 14, 20, juce::Justification::left);
         g.setColour(line);
-        g.fillRect(x, h - 54, cell - 22, 4);
+        g.fillRect(mx, h - 42, cell - 14, 5);
         g.setColour(db > -.5f ? juce::Colour(0xfff39d86) : accent);
-        g.fillRect(x, h - 54,
-                   static_cast<int>(std::clamp((db + 60) / 60, 0.0f, 1.0f) * static_cast<float>(cell - 22)),
-                   4);
-        g.setColour(muted);
+        g.fillRect(mx, h - 42, static_cast<int>(std::clamp((db + 60) / 60, 0.f, 1.f) * (cell - 14)), 5);
         g.setFont(font(10));
-        g.drawText(db <= -72 ? "-inf dB" : juce::String(db, 1) + " dB", x, h - 42, cell - 20, 18,
-                   juce::Justification::centredLeft);
+        g.setColour(muted);
+        g.drawText(db <= -72 ? "-inf dB" : juce::String(db, 1) + " dB", mx, h - 31, cell - 14, 20,
+                   juce::Justification::left);
     }
 }
 void RVocoderEditor::timerCallback()
 {
     keyboard.refreshIncomingNotes();
     panel.refreshChoices();
+    macros.refreshChoices();
+    canvas.refresh();
     const auto p = processor.readParameters();
     const auto routing = Routing::from(p);
+    keyGateToggle.setEnabled(p[P::synthMode] > .5f);
+    for (int i = 0; i < 2; ++i)
+        playButtons[static_cast<std::size_t>(i)].setToggleState((p[P::synthMode] > .5f ? 1 : 0) == i,
+                                                                juce::dontSendNotification);
     for (int i = 0; i < 2; ++i)
         inputButtons[static_cast<std::size_t>(i)].setToggleState(static_cast<int>(routing.input) == i,
                                                                  juce::dontSendNotification);
@@ -561,11 +661,19 @@ void RVocoderEditor::timerCallback()
     for (std::size_t i = 0; i < 4; ++i)
         displayMeters[i] = std::max(levels[i], displayMeters[i] * .88f);
     juce::String message;
-    if (processor.meters.modulator.load() < 0.0001f)
+    if (p[P::bypass] > .5f)
+        message = "Bypass activo: pasa el audio original de la pista.";
+    else if (processor.meters.modulator.load() < 0.0001f)
         message = routing.input == VoiceInput::sidechain
                       ? "No entra voz: elige su pista en Side Chain del DAW y reproduce audio."
                       : juce::String::fromUTF8(
                             "No entra voz: reproduce o activa la escucha de la pista donde está R-Vocoder.");
+    else if (p[P::synthMode] > .5f && p[P::midiGate] > .5f && !processor.meters.midiHeld.load())
+        message = processor.meters.keyGate.load() > .001f
+                      ? "Soltando notas... cerrando la salida."
+                      : "La voz llega. Toca una tecla para abrir la salida.";
+    else if (p[P::synthMode] > .5f && p[P::midiGate] < .5f)
+        message = "Cortar al soltar esta desactivado: la voz y los efectos pueden pasar sin notas.";
     else if (routing.sound == SoundSource::voice)
         message = juce::String::fromUTF8(
             "Voz original: conserva su melodía. Formant, Character y FX modifican su timbre.");
@@ -577,11 +685,11 @@ void RVocoderEditor::timerCallback()
                       "Falta el sonido externo: reproduce el carrier en la pista donde está R-Vocoder.");
     else if (routing.sound == SoundSource::synth && p[P::synthMode] > .5f &&
              processor.meters.carrier.load() < 0.0001f)
-        message = "La voz llega. Toca MIDI para darle notas, o cambia SYNTH a Drone.";
+        message = "La voz llega. Toca MIDI para darle notas, o selecciona Continuo.";
     else
-        message = "GATE " + juce::String(processor.meters.gate.load() > .5f ? "OPEN" : "CLOSED") +
-                  "     /     CORRELATION " + juce::String(processor.meters.correlation.load(), 2) +
-                  "     /     LATENCY " + juce::String(rv::dsp::VocoderEngine::latency) + " samples";
+        message = (p[P::wetOnly] > .5f ? "SOLO EFECTO" : "VOZ + EFECTO") + juce::String("   /   ") +
+                  (p[P::synthMode] > .5f ? "MIDI ABIERTO" : "CONTINUO") +
+                  "   /   Arrastra el grafico para dar forma al sonido.";
     status.setText(message, juce::dontSendNotification);
     repaint();
 }

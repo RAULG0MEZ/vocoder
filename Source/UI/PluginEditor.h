@@ -1,6 +1,7 @@
 #pragma once
 #include "MidiKeyboard.h"
 #include "Plugin/PluginProcessor.h"
+#include "SoundCanvas.h"
 class RVLookAndFeel final : public juce::LookAndFeel_V4
 {
   public:
@@ -11,7 +12,7 @@ class RVLookAndFeel final : public juce::LookAndFeel_V4
 class ParameterPanel final : public juce::Component
 {
   public:
-    explicit ParameterPanel(RVocoderProcessor &);
+    explicit ParameterPanel(RVocoderProcessor &, bool macros = false);
     void showPage(int);
     void layout(int width, int availableHeight = 344);
     void refreshChoices();
@@ -36,6 +37,7 @@ class ParameterPanel final : public juce::Component
     };
     std::vector<Heading> headings;
     int page = 0;
+    bool macrosOnly = false;
 };
 class RVocoderEditor final : public juce::AudioProcessorEditor,
                              private juce::Timer,
@@ -63,11 +65,17 @@ class RVocoderEditor final : public juce::AudioProcessorEditor,
     RVocoderProcessor &processor;
     RVLookAndFeel look;
     juce::TooltipWindow tips{this, 650};
-    juce::Label brand, presetTitle, subtitle, status, inputLabel, soundLabel, midiStatus;
+    juce::Label brand, presetTitle, subtitle, status, inputLabel, soundLabel, midiStatus, playLabel,
+        keyboardLabel, canvasTitle, inspectorTitle;
     juce::TextEditor search;
     juce::ComboBox category;
     std::array<juce::TextButton, 2> inputButtons;
     std::array<juce::TextButton, 3> soundButtons;
+    std::array<juce::TextButton, 2> playButtons;
+    juce::TextButton xyButton{"XY"}, spectrumButton{"Espectro"}, panicButton{"Silenciar"};
+    juce::ToggleButton keyGateToggle{"Cortar al soltar"}, wetOnlyToggle{"Solo efecto"};
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> keyGateAttachment,
+        wetOnlyAttachment;
     juce::ListBox list;
     juce::TextButton prev{"<"}, next{">"}, random{"Shuffle"}, favorite{"Favorite"},
         onlyFavorites{"Favorites"}, save{"Save"}, remove{"Delete"}, reset{"Reset"};
@@ -76,6 +84,8 @@ class RVocoderEditor final : public juce::AudioProcessorEditor,
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     juce::Viewport viewport;
     ParameterPanel panel;
+    ParameterPanel macros;
+    SoundCanvas canvas;
     RVKeyboard keyboard;
     std::vector<int> filtered;
     int currentPage = 0;

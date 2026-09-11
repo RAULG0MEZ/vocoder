@@ -1,0 +1,1 @@
+PASS 314670 plugin integration checks

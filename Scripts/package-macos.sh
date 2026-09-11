@@ -1,7 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-package="$PWD/dist/R-Vocoder-0.2.0-macOS"
+version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' build/RVocoder_artefacts/Release/AU/R-Vocoder.component/Contents/Info.plist)
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Version de plugin invalida"; exit 1; }
+archive="R-Vocoder-${version}-macOS.zip"
+package="$PWD/dist/R-Vocoder-${version}-macOS"
 mkdir -p "$package/Plugins" "$package/ThirdParty" "$package/Docs"
 ditto 'build/RVocoder_artefacts/Release/AU/R-Vocoder.component' "$package/Plugins/R-Vocoder.component"
 ditto 'build/RVocoderMIDI_artefacts/Release/AU/R-Vocoder MIDI.component' "$package/Plugins/R-Vocoder MIDI.component"
@@ -33,6 +36,6 @@ for p in source.rglob('*'):
         output.parent.mkdir(parents=True,exist_ok=True)
         shutil.copy2(p,output)
 PY
-ditto -c -k --sequesterRsrc --keepParent "$package" "$PWD/dist/R-Vocoder-0.2.0-macOS.zip"
-(cd dist && shasum -a 256 R-Vocoder-0.2.0-macOS.zip > SHA256SUMS.txt)
+ditto -c -k --sequesterRsrc --keepParent "$package" "$PWD/dist/$archive"
+(cd dist && shasum -a 256 "$archive" > SHA256SUMS.txt)
 echo "Paquete listo: $package"
