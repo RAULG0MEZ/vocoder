@@ -92,7 +92,8 @@ namespace rv
     X(filterMotion, "filterMotion", "Filter movement", 0, 1, 0.3, 1, "Motion", "")                           \
     X(formantMotion, "formantMotion", "Formant movement", 0, 1, 0.2, 1, "Motion", "")                        \
     X(widthMotion, "widthMotion", "Width movement", 0, 1, 0.2, 1, "Motion", "")                              \
-    X(presetLevel, "presetLevel", "Preset level", -18, 24, 0, 1, "Blend", "")
+    X(presetLevel, "presetLevel", "Preset level", -18, 24, 0, 1, "Blend", "")                                \
+    X(voiceMode, "voiceMode", "Original voice", 0, 1, 0, 1, "Routing", "Vocoder|Original voice")
 
 enum class P : std::size_t
 {

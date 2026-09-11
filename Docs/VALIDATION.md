@@ -1,5 +1,8 @@
 # Validación de R-Vocoder 0.1.0
 
+Este documento conserva las pruebas de la versión inicial. Para los cambios actuales,
+consulta [R-Vocoder 0.2.0](RELEASE-0.2.md).
+
 Registro de la compilación local comprobada el **11 de septiembre de 2026 (UTC)**.
 El plugin está implementado, compilado e instalado. Esta entrega es una versión inicial
 para evaluación musical: la validación automática está aprobada, pero la aceptación

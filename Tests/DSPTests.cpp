@@ -22,8 +22,10 @@ float voice(int i, double sr)
     return 0.22f * (std::sin(2 * pi * 140 * t) + 0.4f * std::sin(2 * pi * 700 * t) +
                     0.2f * std::sin(2 * pi * 2100 * t));
 }
+#include "OriginalVoiceChecks.h"
 int main()
 {
+    originalVoiceChecks();
     Envelope env;
     env.set(48000, 10, 100);
     for (int i = 0; i < 480; ++i)

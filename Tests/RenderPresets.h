@@ -2,7 +2,7 @@
 #include "Plugin/PluginProcessor.h"
 #include <fstream>
 // Offline diagnostic only. No file I/O from the realtime processor.
-inline int renderPresets(const juce::File &source, const juce::File &destination)
+inline int renderPresets(const juce::File &source, const juce::File &destination, bool originalVoice = false)
 {
     juce::AudioFormatManager formats;
     formats.registerBasicFormats();
@@ -21,7 +21,10 @@ inline int renderPresets(const juce::File &source, const juce::File &destination
     for (const auto &preset : rv::factoryPresets())
     {
         rv::dsp::VocoderEngine engine;
-        engine.prepare(reader->sampleRate, preset.parameters);
+        auto parameters = preset.parameters;
+        if (originalVoice)
+            parameters[rv::P::voiceMode] = 1;
+        engine.prepare(reader->sampleRate, parameters);
         juce::AudioBuffer<float> output(2, length + static_cast<int>(reader->sampleRate));
         double sum = 0, l2 = 0, r2 = 0, lr = 0, dc = 0;
         float peak = 0;

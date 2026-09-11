@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-package="$PWD/dist/R-Vocoder-0.1.0-macOS"
+package="$PWD/dist/R-Vocoder-0.2.0-macOS"
 mkdir -p "$package/Plugins" "$package/ThirdParty" "$package/Docs"
 ditto 'build/RVocoder_artefacts/Release/AU/R-Vocoder.component' "$package/Plugins/R-Vocoder.component"
 ditto 'build/RVocoderMIDI_artefacts/Release/AU/R-Vocoder MIDI.component' "$package/Plugins/R-Vocoder MIDI.component"
@@ -14,6 +14,11 @@ if [[ -d build/demo/calibrated ]]; then
  mkdir -p "$package/Demos"
  cp build/demo/calibrated/*.wav "$package/Demos/"
  cp build/demo/voice.wav "$package/Demos/Original voice.wav"
+fi
+if [[ -d build/demo/original-voice ]]; then
+ mkdir -p "$package/Demos/Voz original"
+ cp build/demo/original-voice/*.wav "$package/Demos/Voz original/"
+ cp build/demo/voice.wav "$package/Demos/Sin procesar.wav"
 fi
 cp Scripts/Install.command "$package/Install.command"
 chmod +x "$package/Install.command"
@@ -28,6 +33,6 @@ for p in source.rglob('*'):
         output.parent.mkdir(parents=True,exist_ok=True)
         shutil.copy2(p,output)
 PY
-ditto -c -k --sequesterRsrc --keepParent "$package" "$PWD/dist/R-Vocoder-0.1.0-macOS.zip"
-(cd dist && shasum -a 256 R-Vocoder-0.1.0-macOS.zip > SHA256SUMS.txt)
+ditto -c -k --sequesterRsrc --keepParent "$package" "$PWD/dist/R-Vocoder-0.2.0-macOS.zip"
+(cd dist && shasum -a 256 R-Vocoder-0.2.0-macOS.zip > SHA256SUMS.txt)
 echo "Paquete listo: $package"

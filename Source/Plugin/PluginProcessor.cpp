@@ -34,8 +34,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout RVocoderProcessor::layout()
 }
 RVocoderProcessor::RVocoderProcessor()
     : AudioProcessor(BusesProperties()
+#if RV_MIDI_EDITION
+                         // In Logic's instrument slot the Side Chain selector feeds
+                         // AU input element zero, not a second effect input bus.
+                         .withInput("Voice Sidechain", juce::AudioChannelSet::stereo(), true)
+#else
                          .withInput("Main Input", juce::AudioChannelSet::stereo(), true)
                          .withInput("Sidechain", juce::AudioChannelSet::stereo(), false)
+#endif
                          .withOutput("Main Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "RVocoderState", layout())
 {
@@ -53,10 +59,9 @@ RVocoderProcessor::~RVocoderProcessor()
 }
 bool RVocoderProcessor::isBusesLayoutSupported(const BusesLayout &b) const
 {
-    if (b.inputBuses.size() != 2 || b.outputBuses.size() != 1)
+    if (b.inputBuses.size() != (midiEdition ? 1 : 2) || b.outputBuses.size() != 1)
         return false;
-    const auto main = b.getMainInputChannelSet(), out = b.getMainOutputChannelSet(),
-               sc = b.getChannelSet(true, 1);
+    const auto main = b.getMainInputChannelSet(), out = b.getMainOutputChannelSet();
     const auto mono = juce::AudioChannelSet::mono(), stereo = juce::AudioChannelSet::stereo();
     if (out != mono && out != stereo)
         return false;
@@ -64,6 +69,9 @@ bool RVocoderProcessor::isBusesLayoutSupported(const BusesLayout &b) const
         return false;
     if (main == stereo && out == mono)
         return false;
+    if (midiEdition)
+        return true;
+    const auto sc = b.getChannelSet(true, 1);
     return sc.isDisabled() || sc == mono || sc == stereo;
 }
 Params RVocoderProcessor::readParameters() const
@@ -72,12 +80,15 @@ Params RVocoderProcessor::readParameters() const
     for (std::size_t i = 0; i < parameterCount; ++i)
         p.values[i] = raw[i]->load(std::memory_order_relaxed);
     p.sanitize();
+    if (midiEdition)
+        p[P::route] = 3;
     return p;
 }
 void RVocoderProcessor::prepareToPlay(double sampleRate, int)
 {
     snapshot = readParameters();
     engine.prepare(sampleRate, snapshot);
+    midiMonitor.reset();
     setLatencySamples(rv::dsp::VocoderEngine::latency);
 }
 void RVocoderProcessor::processBlock(juce::AudioBuffer<float> &b, juce::MidiBuffer &m)
@@ -119,20 +130,34 @@ void RVocoderProcessor::process(juce::AudioBuffer<float> &buffer, juce::MidiBuff
         for (int c = 0; c < 16; ++c)
         {
             std::uint8_t msg[]{static_cast<std::uint8_t>(panic[0] + c), 120, 0};
-            engine.midi(msg, 3);
+            dispatchMidi(msg, 3);
         }
     }
     auto read = readPos.load(std::memory_order_relaxed);
     const auto end = writePos.load(std::memory_order_acquire);
     while (read != end)
     {
-        engine.midi(uiMidi[read % uiMidi.size()].data, 3);
+        dispatchMidi(uiMidi[read % uiMidi.size()].data, 3);
         ++read;
     }
     readPos.store(read, std::memory_order_release);
+    if (buffer.getNumChannels() < std::max(getTotalNumInputChannels(), getTotalNumOutputChannels()))
+    {
+        // A mismatched host buffer cannot satisfy the negotiated bus layout.
+        // Keep MIDI state coherent, but never index missing audio channels.
+        for (const auto event : midi)
+            dispatchMidi(event.data, event.numBytes);
+        midi.clear();
+        buffer.clear();
+        meters.input.store(0);
+        meters.modulator.store(0);
+        meters.carrier.store(0);
+        meters.output.store(0);
+        return;
+    }
     auto main = getBusBuffer(buffer, true, 0);
     auto output = getBusBuffer(buffer, false, 0);
-    auto sc = getBusBuffer(buffer, true, 1);
+    auto sc = getBusBuffer(buffer, true, midiEdition ? 0 : 1);
     const int ins = main.getNumChannels(), outs = output.getNumChannels(), sides = sc.getNumChannels();
     auto event = midi.cbegin();
     for (int i = 0; i < buffer.getNumSamples(); ++i)
@@ -140,7 +165,7 @@ void RVocoderProcessor::process(juce::AudioBuffer<float> &buffer, juce::MidiBuff
         while (event != midi.cend() && (*event).samplePosition <= i)
         {
             const auto e = *event;
-            engine.midi(e.data, e.numBytes);
+            dispatchMidi(e.data, e.numBytes);
             ++event;
         }
         const rv::dsp::Stereo x{ins > 0 ? main.getSample(0, i) : 0,
@@ -156,8 +181,21 @@ void RVocoderProcessor::process(juce::AudioBuffer<float> &buffer, juce::MidiBuff
             output.setSample(1, i, y.r);
         }
     }
+    // Hosts may deliver control/MIDI in an empty audio block. Keep those notes,
+    // including note-off, rather than clearing them without dispatching.
+    while (event != midi.cend())
+    {
+        const auto e = *event;
+        dispatchMidi(e.data, e.numBytes);
+        ++event;
+    }
     engine.publish(meters);
     midi.clear();
+}
+void RVocoderProcessor::dispatchMidi(const std::uint8_t *data, int length)
+{
+    midiMonitor.observe(data, length);
+    engine.midi(data, length);
 }
 void RVocoderProcessor::loadPreset(const Preset &preset, bool preserveRouting)
 {
@@ -165,8 +203,10 @@ void RVocoderProcessor::loadPreset(const Preset &preset, bool preserveRouting)
     auto p = preset.parameters;
     const auto old = readParameters();
     if (preserveRouting)
-        for (auto id : {P::route, P::synthMode, P::inputGain, P::outputGain, P::bypass})
+        for (auto id : {P::route, P::voiceMode, P::synthMode, P::inputGain, P::outputGain, P::bypass})
             p[id] = old[id];
+    if (midiEdition)
+        p[P::route] = 3;
     stateSequence.fetch_add(1, std::memory_order_acq_rel);
     for (std::size_t i = 0; i < parameterCount; ++i)
     {
@@ -180,6 +220,27 @@ void RVocoderProcessor::loadPreset(const Preset &preset, bool preserveRouting)
     for (std::size_t i = 0; i < factory.size(); ++i)
         if (factory[i].id == preset.id)
             currentProgram.store(static_cast<int>(i));
+    stateSequence.fetch_add(1, std::memory_order_release);
+}
+void RVocoderProcessor::setRouting(Routing routing)
+{
+    const juce::ScopedLock lock(stateLock);
+    auto p = readParameters();
+    if (midiEdition)
+    {
+        routing.input = VoiceInput::sidechain;
+        if (routing.sound == SoundSource::external)
+            routing.sound = SoundSource::synth;
+    }
+    routing.apply(p);
+    stateSequence.fetch_add(1, std::memory_order_acq_rel);
+    for (auto id : {P::route, P::voiceMode})
+    {
+        auto *parameter = apvts.getParameter(definitions[index(id)].id);
+        parameter->beginChangeGesture();
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(p[id]));
+        parameter->endChangeGesture();
+    }
     stateSequence.fetch_add(1, std::memory_order_release);
 }
 void RVocoderProcessor::resetSound()

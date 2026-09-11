@@ -1,6 +1,7 @@
 #include "Plugin/PluginProcessor.h"
 #include "ProcessorChecks.h"
 #include "RenderPresets.h"
+#include "UserFlowChecks.h"
 #include <iostream>
 #include <set>
 int checks = 0;
@@ -16,9 +17,11 @@ void check(bool ok, const char *what)
 int main(int argc, char **argv)
 {
     juce::ScopedJuceInitialiser_GUI init;
-    if (argc == 4 && juce::String(argv[1]) == "--render")
-        return renderPresets(juce::File(argv[2]), juce::File(argv[3]));
+    if (argc == 4 && (juce::String(argv[1]) == "--render" || juce::String(argv[1]) == "--render-voice"))
+        return renderPresets(juce::File(argv[2]), juce::File(argv[3]),
+                             juce::String(argv[1]) == "--render-voice");
     processorChecks();
+    userFlowChecks();
     RVocoderProcessor p;
     check(p.getNumPrograms() == 100, "100 factory programs");
     std::set<std::string> names, signatures;
@@ -96,7 +99,7 @@ int main(int argc, char **argv)
         check(again.remove(id).wasOk(), "User deletion");
     }
     testDirectory.deleteRecursively();
-    if (argc > 1 && juce::String(argv[1]) == "--screenshot")
+    if (argc > 1 && (juce::String(argv[1]) == "--screenshot" || juce::String(argv[1]) == "--screenshots"))
     {
         p.setCurrentProgram(10);
         p.setRateAndBufferSizeDetails(48000, 256);
@@ -109,6 +112,55 @@ int main(int argc, char **argv)
         out.setPosition(0);
         out.truncate();
         juce::PNGImageFormat{}.writeImageToStream(image, out);
+        out.flush();
+        if (juce::String(argv[1]) == "--screenshots")
+        {
+            auto shot = [&](const juce::String &name)
+            {
+                auto snapshot = editor->createComponentSnapshot(editor->getLocalBounds(), true, 2);
+                juce::FileOutputStream file(
+                    juce::File::getCurrentWorkingDirectory().getChildFile("build/" + name));
+                file.setPosition(0);
+                file.truncate();
+                juce::PNGImageFormat{}.writeImageToStream(snapshot, file);
+            };
+            auto click = [&](const juce::String &name)
+            {
+                for (auto *child : editor->getChildren())
+                    if (auto *button = dynamic_cast<juce::TextButton *>(child))
+                        if (button->getButtonText() == name && button->onClick)
+                        {
+                            button->onClick();
+                            return;
+                        }
+                check(false, "Screenshot button exists");
+            };
+            juce::AudioBuffer<float> audio(
+                std::max(p.getTotalNumInputChannels(), p.getTotalNumOutputChannels()), 256);
+            juce::MidiBuffer notes;
+            p.apvts.getParameter("synthMode")->setValueNotifyingHost(1);
+            p.prepareToPlay(48000, 256);
+            for (int block = 0; block < 80; ++block)
+            {
+                for (int i = 0; i < 256; ++i)
+                    for (int c = 0; c < audio.getNumChannels(); ++c)
+                        audio.setSample(c, i, .2f * std::sin(float(block * 256 + i) * .03f));
+                notes.clear();
+                if (block == 0)
+                    for (int n : {48, 52, 55})
+                        notes.addEvent(juce::MidiMessage::noteOn(1, n, juce::uint8(100)), 0);
+                p.processBlock(audio, notes);
+            }
+            click("Synth");
+            click("SYNTH");
+            shot("ui-midi.png");
+            click("MAIN");
+            click("Voz");
+            click("Sidechain");
+            shot("ui-voice.png");
+            editor->setSize(960, 640);
+            shot("ui-minimum.png");
+        }
     }
     std::cout << "PASS " << checks << " plugin integration checks\n";
 }

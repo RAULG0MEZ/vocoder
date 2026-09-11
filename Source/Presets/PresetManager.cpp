@@ -65,7 +65,7 @@ juce::Result PresetManager::remove(const std::string &id)
     const auto p = std::find_if(presets.begin(), presets.end(),
                                 [&](const auto &item) { return item.user && item.id == id; });
     if (p == presets.end())
-        return juce::Result::fail("Los presets de fábrica no se pueden borrar.");
+        return juce::Result::fail(juce::String::fromUTF8("Los presets de fábrica no se pueden borrar."));
     if (!folder.getChildFile(juce::String(id) + ".rvpreset").deleteFile())
         return juce::Result::fail("No se pudo borrar el preset.");
     reloadUsers();

@@ -112,7 +112,7 @@ ParameterPanel::ParameterPanel(RVocoderProcessor &p) : processor(p)
     for (std::size_t i = 0; i < parameterCount; ++i)
     {
         const auto &d = definitions[i];
-        if (i == index(P::route) || i == index(P::bypass))
+        if (i == index(P::route) || i == index(P::bypass) || i == index(P::voiceMode))
             continue;
         auto c = std::make_unique<Control>();
         c->id = static_cast<P>(i);
@@ -149,7 +149,8 @@ ParameterPanel::ParameterPanel(RVocoderProcessor &p) : processor(p)
             const P id = c->id;
             c->slider.textFromValueFunction = [id](double v)
             { return formatValue(id, static_cast<float>(v)); };
-            c->slider.setTooltip(juce::String(d.name) + " · Doble clic para restablecer");
+            c->slider.setTooltip(juce::String(d.name) +
+                                 juce::String::fromUTF8(" · Doble clic para restablecer"));
             addAndMakeVisible(c->slider);
             c->attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
                 processor.apvts, d.id, c->slider);
@@ -227,9 +228,18 @@ void ParameterPanel::refreshChoices()
 {
     const auto values = processor.readParameters();
     for (auto &c : controls)
+    {
         if (c->combo)
             c->choice.setSelectedId(static_cast<int>(values[c->id] - definitions[index(c->id)].min) + 1,
                                     juce::dontSendNotification);
+        const auto group = juce::String(definitions[index(c->id)].group);
+        const bool originalVoice = values[P::voiceMode] > .5f;
+        const bool enabled = !(originalVoice && (group == "Synth" || c->id == P::modMix ||
+                                                 c->id == P::carMix || c->id == P::presetLevel));
+        c->slider.setEnabled(enabled);
+        c->choice.setEnabled(enabled);
+        c->label.setAlpha(enabled ? 1.f : .4f);
+    }
 }
 void ParameterPanel::paint(juce::Graphics &g)
 {
@@ -243,8 +253,7 @@ void ParameterPanel::paint(juce::Graphics &g)
     }
 }
 RVocoderEditor::RVocoderEditor(RVocoderProcessor &p)
-    : AudioProcessorEditor(p), processor(p), panel(p),
-      keyboard(p.keyboard, juce::MidiKeyboardComponent::horizontalKeyboard)
+    : AudioProcessorEditor(p), processor(p), panel(p), keyboard(p.keyboard, p.midiMonitor)
 {
     setLookAndFeel(&look);
     setOpaque(true);
@@ -302,15 +311,66 @@ RVocoderEditor::RVocoderEditor(RVocoderProcessor &p)
     save.onClick = [this] { savePreset(); };
     remove.onClick = [this] { deletePreset(); };
     reset.onClick = [this] { processor.resetSound(); };
-    sources.addItemList(juce::StringArray::fromTokens(definitions[index(P::route)].choices, "|", ""), 1);
-    sources.onChange = [this]
+    inputLabel.setText("VOZ DESDE", juce::dontSendNotification);
+    soundLabel.setText("SONIDO", juce::dontSendNotification);
+    for (auto *label : {&inputLabel, &soundLabel, &midiStatus})
     {
-        auto *p = processor.apvts.getParameter("route");
-        p->beginChangeGesture();
-        p->setValueNotifyingHost(p->convertTo0to1(static_cast<float>(sources.getSelectedId() - 1)));
-        p->endChangeGesture();
-    };
-    addAndMakeVisible(sources);
+        label->setFont(font(10, true));
+        label->setColour(juce::Label::textColourId, muted);
+        addAndMakeVisible(label);
+    }
+    midiStatus.setJustificationType(juce::Justification::centredRight);
+    const std::array<juce::String, 2> inputs{"Pista", "Sidechain"};
+    for (int i = 0; i < 2; ++i)
+    {
+        auto &button = inputButtons[static_cast<std::size_t>(i)];
+        button.setButtonText(inputs[static_cast<std::size_t>(i)]);
+        button.setConnectedEdges(i == 0 ? juce::Button::ConnectedOnRight : juce::Button::ConnectedOnLeft);
+        button.setTooltip(i == 0 ? "Usar la voz de la pista donde insertaste R-Vocoder."
+                                 : "Usar la voz elegida en el selector Side Chain del DAW.");
+        button.onClick = [this, i]
+        {
+            auto routing = Routing::from(processor.readParameters());
+            routing.input = i == 0 ? VoiceInput::track : VoiceInput::sidechain;
+            processor.setRouting(routing);
+            timerCallback();
+        };
+        addAndMakeVisible(button);
+    }
+    const std::array<juce::String, 3> sounds{"Voz", "Synth", "Externo"};
+    const std::array<juce::String, 3> soundTips{
+        juce::String::fromUTF8(
+            "Procesar el timbre y formantes de la voz conservando su melodía, sin sintetizador."),
+        juce::String::fromUTF8(
+            "Vocoder clásico: la voz da las palabras y el sintetizador interno da las notas."),
+        "Vocoder con carrier externo: la otra entrada da las notas y la textura."};
+    for (int i = 0; i < 3; ++i)
+    {
+        auto &button = soundButtons[static_cast<std::size_t>(i)];
+        button.setButtonText(sounds[static_cast<std::size_t>(i)]);
+        button.setTooltip(soundTips[static_cast<std::size_t>(i)]);
+        button.setConnectedEdges(
+            i == 0 ? juce::Button::ConnectedOnRight
+                   : (i == 2 ? juce::Button::ConnectedOnLeft
+                             : juce::Button::ConnectedOnLeft | juce::Button::ConnectedOnRight));
+        button.onClick = [this, i]
+        {
+            auto routing = Routing::from(processor.readParameters());
+            routing.sound = static_cast<SoundSource>(i);
+            processor.setRouting(routing);
+            timerCallback();
+        };
+        addAndMakeVisible(button);
+    }
+    if (processor.midiEdition)
+    {
+        inputButtons[0].setEnabled(false);
+        inputButtons[0].setTooltip(juce::String::fromUTF8(
+            "En la edición MIDI la voz llega por Side Chain. Para audio directo usa R-Vocoder en Audio FX."));
+        soundButtons[2].setEnabled(false);
+        soundButtons[2].setTooltip(juce::String::fromUTF8(
+            "Para combinar voz y carrier externos usa la edición R-Vocoder de Audio FX."));
+    }
     const std::array<juce::String, 5> names{"MAIN", "VOCODER", "SYNTH", "FX", "MOTION"};
     for (int i = 0; i < 5; ++i)
     {
@@ -325,8 +385,9 @@ RVocoderEditor::RVocoderEditor(RVocoderProcessor &p)
     viewport.setScrollBarsShown(true, false);
     viewport.setScrollBarThickness(8);
     addAndMakeVisible(viewport);
-    keyboard.setAvailableRange(36, 84);
-    keyboard.setLowestVisibleKey(48);
+    keyboard.setAvailableRange(0, 127);
+    keyboard.setLowestVisibleKey(36);
+    keyboard.setOctaveForMiddleC(4);
     keyboard.setKeyWidth(24);
     keyboard.setColour(juce::MidiKeyboardComponent::whiteNoteColourId, juce::Colour(0xffaeb7b3));
     keyboard.setColour(juce::MidiKeyboardComponent::blackNoteColourId, bg);
@@ -368,10 +429,16 @@ void RVocoderEditor::resized()
     favorite.setBounds(126, h - 144, 100, 29);
     save.setBounds(18, h - 105, 100, 29);
     remove.setBounds(126, h - 105, 100, 29);
-    sources.setBounds(left + 24, 94, std::min(430, w - left - 280), 32);
-    reset.setBounds(w - 100, 94, 76, 30);
+    inputLabel.setBounds(left + 24, 85, 180, 18);
+    soundLabel.setBounds(left + 220, 85, 250, 18);
+    for (int i = 0; i < 2; ++i)
+        inputButtons[static_cast<std::size_t>(i)].setBounds(left + 24 + i * 86, 105, 84, 30);
+    for (int i = 0; i < 3; ++i)
+        soundButtons[static_cast<std::size_t>(i)].setBounds(left + 220 + i * 78, 105, 76, 30);
+    reset.setBounds(w - 100, 105, 76, 30);
     presetTitle.setBounds(left + 20, 143, w - left - 275, 42);
-    subtitle.setBounds(left + 24, 187, w - left - 100, 24);
+    subtitle.setBounds(left + 24, 187, w - left - 215, 24);
+    midiStatus.setBounds(w - 190, 187, 162, 24);
     prev.setBounds(w - 216, 151, 36, 30);
     next.setBounds(w - 174, 151, 36, 30);
     random.setBounds(w - 130, 151, 106, 30);
@@ -394,7 +461,7 @@ void RVocoderEditor::paint(juce::Graphics &g)
     g.setFont(font(11, true));
     g.setColour(muted);
     g.drawText("SOUND LIBRARY  /  100 FACTORY", 20, 84, 220, 20, juce::Justification::centredLeft);
-    g.drawText("RSTK   /   0.1.0", 22, h - 38, 180, 20, juce::Justification::centredLeft);
+    g.drawText("RSTK   /   " JucePlugin_VersionString, 22, h - 38, 180, 20, juce::Justification::centredLeft);
     if (currentPage != 2)
     {
         const int count = processor.meters.bandCount.load();
@@ -414,7 +481,8 @@ void RVocoderEditor::paint(juce::Graphics &g)
     }
     g.setColour(line);
     g.drawHorizontalLine(h - 95, static_cast<float>(left + 24), static_cast<float>(w - 24));
-    const std::array<juce::String, 4> labels{"INPUT", "MODULATOR", "CARRIER", "OUTPUT"};
+    const std::array<juce::String, 4> labels{processor.midiEdition ? "SIDECHAIN" : "PISTA", "VOZ", "SONIDO",
+                                             "SALIDA"};
     const int cell = (w - left - 58) / 4;
     for (int i = 0; i < 4; ++i)
     {
@@ -439,15 +507,39 @@ void RVocoderEditor::paint(juce::Graphics &g)
 }
 void RVocoderEditor::timerCallback()
 {
+    keyboard.refreshIncomingNotes();
     panel.refreshChoices();
     const auto p = processor.readParameters();
-    sources.setSelectedId(static_cast<int>(p[P::route]) + 1, juce::dontSendNotification);
+    const auto routing = Routing::from(p);
+    for (int i = 0; i < 2; ++i)
+        inputButtons[static_cast<std::size_t>(i)].setToggleState(static_cast<int>(routing.input) == i,
+                                                                 juce::dontSendNotification);
+    for (int i = 0; i < 3; ++i)
+        soundButtons[static_cast<std::size_t>(i)].setToggleState(static_cast<int>(routing.sound) == i,
+                                                                 juce::dontSendNotification);
     presetTitle.setText(processor.presetName(), juce::dontSendNotification);
     const int bands = bandCounts[static_cast<std::size_t>(static_cast<int>(p[P::bands]))];
-    subtitle.setText(juce::String(bands) + " BANDS  /  " +
-                         (p[P::synthMode] > .5f ? "MIDI CARRIER" : "DRONE CARRIER") + "  /  " +
+    const auto soundName = routing.sound == SoundSource::voice
+                               ? "VOZ ORIGINAL"
+                               : (routing.sound == SoundSource::external
+                                      ? "CARRIER EXTERNO"
+                                      : (p[P::synthMode] > .5f ? "SYNTH MIDI" : "SYNTH DRONE"));
+    subtitle.setText(juce::String(bands) + " BANDS  /  " + soundName + "  /  " +
                          juce::String(processor.getSampleRate() / 1000, 1) + " kHz",
                      juce::dontSendNotification);
+    if (const auto seq = processor.midiMonitor.sequence(); seq != lastMidiSequence)
+    {
+        lastMidiSequence = seq;
+        midiFlashTicks = 25;
+    }
+    else if (midiFlashTicks > 0)
+        --midiFlashTicks;
+    midiStatus.setText(midiFlashTicks > 0 ? juce::String::fromUTF8("MIDI  ·  ") +
+                                                juce::MidiMessage::getMidiNoteName(
+                                                    processor.midiMonitor.latestNote(), true, true, 4)
+                                          : "MIDI",
+                       juce::dontSendNotification);
+    midiStatus.setColour(juce::Label::textColourId, midiFlashTicks > 0 ? accent : muted);
     const auto id = processor.presetId();
     if (id != lastId)
     {
@@ -469,11 +561,23 @@ void RVocoderEditor::timerCallback()
     for (std::size_t i = 0; i < 4; ++i)
         displayMeters[i] = std::max(levels[i], displayMeters[i] * .88f);
     juce::String message;
-    if ((p[P::route] > 1.5f && processor.meters.modulator.load() < 0.0001f) ||
-        (p[P::route] > 0.5f && p[P::route] < 1.5f && processor.meters.carrier.load() < 0.0001f))
-        message = "Selecciona la pista de voz o carrier en el Side Chain de tu DAW.";
-    else if (p[P::synthMode] > .5f && processor.meters.carrier.load() < 0.0001f)
-        message = "Toca MIDI para activar el carrier. También puedes usar el teclado en SYNTH.";
+    if (processor.meters.modulator.load() < 0.0001f)
+        message = routing.input == VoiceInput::sidechain
+                      ? "No entra voz: elige su pista en Side Chain del DAW y reproduce audio."
+                      : juce::String::fromUTF8(
+                            "No entra voz: reproduce o activa la escucha de la pista donde está R-Vocoder.");
+    else if (routing.sound == SoundSource::voice)
+        message = juce::String::fromUTF8(
+            "Voz original: conserva su melodía. Formant, Character y FX modifican su timbre.");
+    else if (routing.sound == SoundSource::external && processor.meters.carrier.load() < 0.0001f)
+        message =
+            routing.input == VoiceInput::track
+                ? "Falta el sonido externo: elige un sintetizador o carrier en Side Chain del DAW."
+                : juce::String::fromUTF8(
+                      "Falta el sonido externo: reproduce el carrier en la pista donde está R-Vocoder.");
+    else if (routing.sound == SoundSource::synth && p[P::synthMode] > .5f &&
+             processor.meters.carrier.load() < 0.0001f)
+        message = "La voz llega. Toca MIDI para darle notas, o cambia SYNTH a Drone.";
     else
         message = "GATE " + juce::String(processor.meters.gate.load() > .5f ? "OPEN" : "CLOSED") +
                   "     /     CORRELATION " + juce::String(processor.meters.correlation.load(), 2) +
@@ -584,21 +688,22 @@ void RVocoderEditor::deletePreset()
     if (id.rfind("user-", 0) != 0)
         return;
     juce::Component::SafePointer<RVocoderEditor> safe(this);
-    juce::AlertWindow::showOkCancelBox(juce::MessageBoxIconType::QuestionIcon, "Borrar preset",
-                                       "Se borrará el preset personal «" + processor.presetName() +
-                                           "». Los proyectos guardados conservan su sonido.",
-                                       "Borrar", "Cancelar", this,
-                                       juce::ModalCallbackFunction::create(
-                                           [safe, id](int result)
-                                           {
-                                               if (safe && result)
-                                               {
-                                                   auto r = safe->processor.presets.remove(id);
-                                                   if (r.wasOk())
-                                                   {
-                                                       safe->processor.resetSound();
-                                                       safe->filterPresets();
-                                                   }
-                                               }
-                                           }));
+    juce::AlertWindow::showOkCancelBox(
+        juce::MessageBoxIconType::QuestionIcon, "Borrar preset",
+        juce::String::fromUTF8("Se borrará el preset personal «") + processor.presetName() +
+            juce::String::fromUTF8("». Los proyectos guardados conservan su sonido."),
+        "Borrar", "Cancelar", this,
+        juce::ModalCallbackFunction::create(
+            [safe, id](int result)
+            {
+                if (safe && result)
+                {
+                    auto r = safe->processor.presets.remove(id);
+                    if (r.wasOk())
+                    {
+                        safe->processor.resetSound();
+                        safe->filterPresets();
+                    }
+                }
+            }));
 }

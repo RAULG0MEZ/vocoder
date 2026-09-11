@@ -57,6 +57,8 @@ class VocoderEngine
         breathHP.reset();
         dryL.reset();
         dryR.reset();
+        voiceDryL.reset();
+        voiceDryR.reset();
         active = 0;
         fade = 0;
         transition = false;
@@ -66,6 +68,7 @@ class VocoderEngine
         cross = energyL = energyR = 0;
         dcIn = dcOut = {};
         bypassBlend = target[P::bypass];
+        voiceBlend = target[P::voiceMode];
         routeWeights.fill(0);
         routeWeights[static_cast<std::size_t>(std::clamp(static_cast<int>(target[P::route]), 0, 3))] = 1;
     }
@@ -101,7 +104,7 @@ class VocoderEngine
         sidechain = sidechain * inGain;
         const auto synthOut = synth.process();
         float mod = 0;
-        Stereo carrier;
+        Stereo carrier, voice;
         const int route = static_cast<int>(target[P::route]);
         for (int i = 0; i < 4; ++i)
         {
@@ -110,19 +113,33 @@ class VocoderEngine
             const auto m = i < 2 ? main : sidechain;
             const auto c = (i == 0 || i == 3) ? synthOut : (i == 1 ? sidechain : main);
             mod += 0.5f * (m.l + m.r) * w;
+            voice = voice + m * w;
             carrier = carrier + c * w;
         }
         const float gateGain = gate.process(mod), env = modEnvelope.process(mod);
+        const Stereo voiceDry{voiceDryL.process(inGain > 0 ? voice.l / inGain : 0),
+                              voiceDryR.process(inGain > 0 ? voice.r / inGain : 0)};
+        voiceBlend = target[P::voiceMode] + smoothing * (voiceBlend - target[P::voiceMode]);
+        if (voiceBlend < .00001f)
+            voiceBlend = 0;
+        if (voiceBlend > .99999f)
+            voiceBlend = 1;
         const float hp = voiceHP.high(mod), breathy = breathHP.high(mod), high = highEnvelope.process(hp);
         const float zeroCross = zcEnvelope.process(mod * prevMod < 0 ? 1.0f : 0.0f);
         prevMod = mod;
         unvoicedAmount = std::clamp((high / (env + 0.00001f) - 0.2f) * 1.4f + zeroCross * 1.6f, 0.0f, 1.0f);
-        auto wet = banks[static_cast<std::size_t>(active)].process(mod * gateGain, carrier);
+        const auto gatedVoice = voice * gateGain;
+        Stereo shapedVoice;
+        auto wet = banks[static_cast<std::size_t>(active)].process(mod * gateGain, carrier, gatedVoice,
+                                                                   voiceBlend > 0 ? &shapedVoice : nullptr);
         if (transition)
         {
-            const auto b = banks[static_cast<std::size_t>(1 - active)].process(mod * gateGain, carrier);
+            Stereo otherVoice;
+            const auto b = banks[static_cast<std::size_t>(1 - active)].process(
+                mod * gateGain, carrier, gatedVoice, voiceBlend > 0 ? &otherVoice : nullptr);
             fade = std::min(1.0f, fade + 1.0f / static_cast<float>(sr * 0.035));
             wet = wet * (1 - fade) + b * fade;
+            shapedVoice = shapedVoice * (1 - fade) + otherVoice * fade;
             if (fade >= 1)
             {
                 active = 1 - active;
@@ -137,6 +154,9 @@ class VocoderEngine
         wet = wet + Stereo{consonant, consonant};
         wet = wet + Stereo{mod, mod} * (current[P::modMix] * gateGain) +
               carrier * (current[P::carMix] * gateGain);
+        const auto processedVoice =
+            gatedVoice * (1 - amount) + shapedVoice * amount + Stereo{consonant, consonant} * .35f;
+        wet = wet * (1 - voiceBlend) + processedVoice * voiceBlend;
         const float mid = (wet.l + wet.r) * 0.5f, side = (wet.l - wet.r) * 0.5f;
         const float width =
             std::clamp(current[P::width] + motionValue * current[P::widthMotion] * 0.5f, 0.0f, 2.0f);
@@ -151,9 +171,11 @@ class VocoderEngine
                                wet.r - dcIn.r + dcCoefficient * dcOut.r};
         dcIn = wet;
         dcOut = dcRemoved;
-        wet = dcRemoved * presetGain;
+        // Factory trim was calibrated for vocoding. It must not over-amplify a
+        // full-level original voice, nor make a voice-only preset depend on it.
+        wet = dcRemoved * lerp(presetGain, 1.f, voiceBlend);
         const float mix = current[P::mix];
-        Stereo out = dry * std::cos(mix * pi * 0.5f) + wet * std::sin(mix * pi * 0.5f);
+        Stereo out = voiceDry * std::cos(mix * pi * 0.5f) + wet * std::sin(mix * pi * 0.5f);
         out = out * outGain;
         // Unity below -1.4 dBFS, monotonic soft knee above it, finite bounded output.
         auto protect = [](float x)
@@ -171,7 +193,8 @@ class VocoderEngine
             phase -= std::floor(phase);
         inputPeak = std::max(inputPeak, std::max(std::abs(main.l), std::abs(main.r)));
         modPeak = std::max(modPeak, std::abs(mod));
-        carPeak = std::max(carPeak, std::max(std::abs(carrier.l), std::abs(carrier.r)));
+        const auto sound = carrier * (1 - voiceBlend) + voice * voiceBlend;
+        carPeak = std::max(carPeak, std::max(std::abs(sound.l), std::abs(sound.r)));
         outPeak = std::max(outPeak, std::max(std::abs(out.l), std::abs(out.r)));
         cross = 0.999f * cross + 0.001f * out.l * out.r;
         energyL = 0.999f * energyL + 0.001f * out.l * out.l;
@@ -270,6 +293,7 @@ class VocoderEngine
     Envelope modEnvelope, highEnvelope, zcEnvelope;
     SVF voiceHP, breathHP;
     Delay<latency> dryL, dryR;
+    Delay<latency> voiceDryL, voiceDryR;
     std::array<float, 4> routeWeights{};
     Stereo dcIn, dcOut;
     float dcCoefficient = 0, presetGain = 1;
@@ -277,7 +301,7 @@ class VocoderEngine
     std::uint64_t clock = 0;
     bool transition = false;
     float fade = 0, smoothing = 0, inGain = 1, outGain = 1, motionValue = 0, filterMod = 0, lfoValue = 0,
-          prevMod = 0, unvoicedAmount = 0, bypassBlend = 0;
+          prevMod = 0, unvoicedAmount = 0, bypassBlend = 0, voiceBlend = 0;
     float inputPeak = 0, modPeak = 0, carPeak = 0, outPeak = 0, cross = 0, energyL = 0, energyR = 0;
 };
 } // namespace rv::dsp

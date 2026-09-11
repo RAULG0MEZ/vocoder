@@ -10,7 +10,9 @@ La GUI usa dibujo vectorial nativo de JUCE, sin navegador, cuentas, servidor ni 
 
 ## Recorrido del audio
 
-1. Entradas principal y auxiliar mono/estéreo, con ganancia común de entrada.
+1. AU de efecto y VST3: entradas principal y auxiliar mono/estéreo, con ganancia común
+   de entrada. El AU MIDI usa una sola entrada de voz en el elemento AU cero: es el
+   que Logic alimenta desde el selector Side Chain de una pista de instrumento.
 2. Selección y transición entre fuentes: voz principal/carrier interno; voz principal/carrier
    auxiliar; voz auxiliar/carrier principal; voz auxiliar/carrier interno.
 3. Gate gobernado por la voz: detector rápido, umbrales de apertura/cierre separados,
@@ -34,6 +36,24 @@ La GUI usa dibujo vectorial nativo de JUCE, sin navegador, cuentas, servidor ni 
 10. Saturación suave y distorsión, interpoladas entre dos estilos, procesadas a 2x con
     interpolación y decimación FIR. Protección suave de salida y mezcla equal-power.
 
+### Modo Voz original (0.2)
+
+Conserva la señal de voz como base, sin carrier sintetizado. El banco estima la envolvente
+espectral y calcula una corrección por banda mediante la relación entre envolventes
+desplazadas y originales. Un suelo de energía y ganancias acotadas evitan amplificar
+bandas prácticamente vacías. Se suman las correcciones filtradas a la voz original;
+con desplazamiento, tilt, nasal, throat y spread neutros la corrección del banco es
+exactamente cero. Las consonantes aportan un refuerzo moderado con Clarity y Sibilance.
+
+El modo conserva la melodía, no hace transposición de la voz mediante MIDI ni síntesis
+de voz neuronal. Mantiene gate, forma espectral, tono, anchura y Character FX. El cambio
+Voz/Synth se cruza con suavizado de 12 ms y mantiene las 16 muestras de latencia.
+La ganancia calibrada de los presets de vocoder se excluye de Voz original para no
+sobreamplificar una grabación que ya tiene nivel normal.
+
+El dry de Mix sigue siempre la entrada elegida como voz. El bypass del efecto mantiene
+la entrada principal, compensada con el mismo retardo, como espera la pista anfitriona.
+
 ## Sintetizador
 
 12 voces MIDI, 7 osciladores de unísono por voz como máximo, ADSR, pitch bend de ±2
@@ -52,6 +72,10 @@ determinista al preparar una instancia; no se serializa la fase de una nota sost
 El callback usa estructuras de tamaño fijo, parámetros atómicos y una cola MIDI de
 capacidad fija para el teclado de pantalla. No abre archivos, crea presets, usa mutex
 ni reserva memoria. La GUI consulta medidores atómicos a 25 Hz.
+
+La actividad MIDI se publica por nota y canal mediante atómicos. El teclado dibuja esas
+notas junto a las pulsadas con el ratón, sin inyectarlas de nuevo al motor. Incluye note-off
+con velocidad cero, canales 1–16, all-notes-off, all-sound-off y bloques sin muestras.
 
 Los controles continuos usan suavizado de 12 ms. La configuración de filtros se calcula
 a una frecuencia de control de 1/64 del sample rate. Los cambios de bandas, rango o Q
@@ -78,7 +102,12 @@ adopte un preset a medio cargar.
 
 La persistencia de presets y favoritos ocurre fuera del callback. Los presets personales
 son JSON con IDs estables y nombres de archivo UUID, sin rutas derivadas del nombre visible.
-Cambiar de preset conserva routing, modo Drone/MIDI, ganancias y bypass del proyecto.
+Cambiar de preset conserva routing, Voz/Synth/Externo, modo Drone/MIDI, ganancias y bypass.
+El parámetro nuevo `voiceMode` se añade al final, con valor predeterminado cero para
+mantener el sonido de sesiones anteriores. `route` conserva sus IDs y valores en
+AU de efecto/VST3. En AU MIDI el routing efectivo está fijado a voz por sidechain e
+interno, independientemente de los antiguos valores guardados, porque sólo existe
+una entrada física de voz. El estado antiguo se puede leer sin renombrar los plugins.
 
 ## Fuentes técnicas consultadas
 

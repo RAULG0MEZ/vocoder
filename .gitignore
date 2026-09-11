@@ -4,6 +4,7 @@
 build*/
 dist/
 .cache/
+.tmp/
 *.user
 *.swp
 Testing/

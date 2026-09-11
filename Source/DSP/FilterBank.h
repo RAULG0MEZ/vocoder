@@ -8,6 +8,7 @@ class FilterBank
     struct Band
     {
         SVF analysis1, analysis2, left1, left2, right1, right2;
+        SVF voiceLeft1, voiceLeft2, voiceRight1, voiceRight2;
         Envelope envelope;
         float frequency = 0;
     };
@@ -29,6 +30,10 @@ class FilterBank
             b.left2.set(sr, b.frequency, q);
             b.right1.set(sr, b.frequency, q);
             b.right2.set(sr, b.frequency, q);
+            b.voiceLeft1.set(sr, b.frequency, q);
+            b.voiceLeft2.set(sr, b.frequency, q);
+            b.voiceRight1.set(sr, b.frequency, q);
+            b.voiceRight2.set(sr, b.frequency, q);
             b.envelope.set(sr, attack, release);
         }
     }
@@ -54,7 +59,7 @@ class FilterBank
             weights[static_cast<std::size_t>(i)] = {gain * (1 - pan), gain * (1 + pan)};
         }
     }
-    Stereo process(float mod, Stereo carrier)
+    Stereo process(float mod, Stereo carrier, Stereo originalVoice = {}, Stereo *reshapedVoice = nullptr)
     {
         for (int i = 0; i < n; ++i)
         {
@@ -63,6 +68,8 @@ class FilterBank
             envelopes[static_cast<std::size_t>(i)] = b.envelope.process(x);
         }
         Stereo out;
+        if (reshapedVoice != nullptr)
+            *reshapedVoice = originalVoice;
         for (int i = 0; i < n; ++i)
         {
             auto &b = bank[static_cast<std::size_t>(i)];
@@ -79,6 +86,20 @@ class FilterBank
             const float gain = lerp(env, std::sqrt(std::max(0.0f, env)) * 0.5f, compression);
             out.l += b.left2.band(b.left1.band(carrier.l)) * gain * weights[static_cast<std::size_t>(i)].l;
             out.r += b.right2.band(b.right1.band(carrier.r)) * gain * weights[static_cast<std::size_t>(i)].r;
+            if (reshapedVoice != nullptr)
+            {
+                // Retain the original waveform and change only the spectral balance.
+                // At neutral formant/tilt/spread the correction is exactly zero.
+                // A floor and a bounded ratio avoid boosting near-empty voice bands.
+                const float reference = envelopes[static_cast<std::size_t>(i)];
+                const float ratio = std::clamp((env + .0005f) / (reference + .0005f), .2f, 4.f);
+                const auto weight = weights[static_cast<std::size_t>(i)];
+                const float definition = .7f + compression * .5f;
+                reshapedVoice->l += b.voiceLeft2.band(b.voiceLeft1.band(originalVoice.l)) *
+                                    (std::clamp(ratio * weight.l, .1f, 5.f) - 1.f) * definition;
+                reshapedVoice->r += b.voiceRight2.band(b.voiceRight1.band(originalVoice.r)) *
+                                    (std::clamp(ratio * weight.r, .1f, 5.f) - 1.f) * definition;
+            }
         }
         return out * 9.0f;
     }
@@ -92,6 +113,10 @@ class FilterBank
             b.left2.reset();
             b.right1.reset();
             b.right2.reset();
+            b.voiceLeft1.reset();
+            b.voiceLeft2.reset();
+            b.voiceRight1.reset();
+            b.voiceRight2.reset();
             b.envelope.reset();
         }
         envelopes.fill(0);
