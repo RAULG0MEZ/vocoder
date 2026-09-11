@@ -2,11 +2,11 @@
 
 Vocoder creativo de RSTK para macOS. Incluye AU para pistas de audio, AU controlado
 por MIDI para Logic, VST3 y una aplicación independiente. Compilación universal
-Apple Silicon + Intel, macOS 11 o posterior. Versión 0.2.0.
+Apple Silicon + Intel, macOS 11 o posterior. Versión 0.3.0.
 
 **[Web y descarga](https://raulg0mez.github.io/vocoder/)** ·
-**[Descargar ZIP para macOS](https://github.com/RAULG0MEZ/vocoder/releases/download/v0.2.0/R-Vocoder-0.2.0-macOS.zip)** ·
-[Release 0.2.0 y SHA-256](https://github.com/RAULG0MEZ/vocoder/releases/tag/v0.2.0)
+**[Descargar ZIP para macOS](https://github.com/RAULG0MEZ/vocoder/releases/download/v0.3.0/R-Vocoder-0.3.0-macOS.zip)** ·
+[Release 0.3.0 y SHA-256](https://github.com/RAULG0MEZ/vocoder/releases/tag/v0.3.0)
 
 Para el paquete descargado: descomprime el ZIP, ejecuta `Install.command` y vuelve
 a abrir tu DAW. Esta beta tiene firma ad hoc y no está notarizada por Apple; consulta
@@ -15,7 +15,7 @@ la sección de instalación de la web si macOS bloquea su apertura.
 **Estado:** compilado, instalado y aprobado por auval y pluginval nivel 10.
 Disponible para evaluación; falta completar la audición y el recorrido real dentro
 de Logic/Ableton antes de declararlo listo para producción. Consulta los
-[resultados y pendientes](Docs/RELEASE-0.2.md).
+[resultados y pendientes](Docs/RELEASE-0.3.md).
 
 ## Empieza a cantar
 
@@ -81,12 +81,12 @@ frecuencias con las que reconstruir palabras.
 2. En su ranura **Instrument**, abre **AU MIDI-controlled Effects → RSTK → R-Vocoder MIDI**.
    Es la ranura de instrumento, no la de MIDI FX.
 3. En el selector **Side Chain** de la ventana del plugin, elige la pista de voz.
-4. La edición MIDI configura **Voz desde: Sidechain**, **Sonido: Synth** y `Play mode: MIDI`.
+4. La edición MIDI configura **Voz desde: Sidechain**, **Sonido: Synth** y **Activación: Con teclas**.
 5. Reproduce la voz y toca notas o acordes. Guarda la canción normalmente.
 
 Las teclas de la interfaz se iluminan con las notas que llegan del DAW y el indicador
 MIDI muestra la última nota. Para procesar esa misma voz sin osciladores, pulsa **Voz**:
-ya no necesitas tocar notas. En la edición MIDI, **Pista** y **Externo** no están
+en Continuo no necesitas tocar notas. Con teclas también puedes abrir y cerrar esa voz con MIDI, conservando su melodía. En la edición MIDI, **Pista** y **Externo** no están
 disponibles, porque Logic entrega la voz por la única entrada de Side Chain del instrumento.
 Para voz directa de una pista de audio o dos señales externas, usa **R-Vocoder** en Audio FX.
 
@@ -100,29 +100,43 @@ este patrón de instrumento y voz por sidechain:
 1. En Plug-ins, carga **VST3 → RSTK → R-Vocoder** en la pista que va a procesarse.
 2. Despliega el panel de sidechain del dispositivo, actívalo y elige **Audio From**.
 3. Usa **Pista / Sidechain** y **Voz / Synth / Externo** según la tabla anterior.
-4. Para tocar el carrier, selecciona `MIDI` en SYNTH y enruta una pista MIDI hacia
+4. Para tocar el carrier, selecciona **Con teclas** arriba del teclado y enruta una pista MIDI hacia
    la pista que contiene R-Vocoder; elige el plugin como destino cuando Live lo ofrezca.
    Si tu configuración no ofrece ese destino, usa Drone o un carrier externo.
 
 Live presenta el selector de entrada auxiliar del plugin en su propio dispositivo:
 [guía oficial de sidechain](https://help.ableton.com/hc/en-us/articles/209775325-Sidechaining-a-third-party-plug-in).
 
-## Controles
+## Una sola vista para tocar
 
-- **MAIN:** ocho macros y actividad de las bandas. Clarity refuerza envolventes débiles
-  y consonantes; Character aumenta saturación y densidad; Motion escala los destinos de movimiento.
-- **VOCODER:** análisis, identidad vocal, consonantes, gate y mezclas. Preset level
-  compensa el volumen propio del preset sin cambiar la ganancia de tu proyecto.
-- **SYNTH:** siete ondas, mezcla con senoide, unísono, detune, filtro resonante, ADSR,
-  glide, octava y acordes del Drone. El teclado de pantalla envía notas en modo MIDI.
-- **FX:** anchura, spread, movimiento estéreo, distorsión, crusher, speaker, vintage,
-  modern, warmth, exciter, ruido, tono y ganancias de entrada/salida.
-- **MOTION:** LFO libre o sincronizado, divisiones de 1/1 a 1/16, puntillo y tresillo,
-  seguidor de envolvente y destinos de bandas, filtro, formantes, panorama y anchura.
+El teclado MIDI, las entradas y ocho controles principales permanecen visibles.
+Los botones **VOZ / SYNTH / FX / MOTION / SALIDA** cambian únicamente el inspector
+lateral; el teclado, los macros y el gráfico siguen en su lugar.
 
-**Mix** usa curvas equal-power. **Vocoder amount** combina transferencia espectral con
+- **Continuo:** procesa mientras llega voz; el sintetizador usa su nota/acorde Drone.
+- **Con teclas:** el sintetizador sigue MIDI. Con **Cortar al soltar**, cualquier modo
+  (Voz, Synth o Externo) abre la salida con notas y la cierra al soltarlas. El sustain
+  mantiene la salida abierta hasta levantar el pedal. La cola se ajusta con
+  **Key release** en SALIDA (70 ms por defecto, de 5 a 600 ms).
+- **Solo efecto:** elimina la mezcla directa de voz limpia. Mix muestra 100% y Voice mix
+  queda desactivado; para mezclar señal original, desmarca Solo efecto.
+- **XY:** arrastra el punto: horizontal = Formant, vertical = Character. Los controles
+  correspondientes se actualizan y los movimientos se pueden automatizar en el DAW.
+- **Espectro:** arrastra los bordes para ajustar las frecuencias inferior/superior del
+  banco de filtros. La curva muestra las envolventes reales de sus bandas.
+- Doble clic en el gráfico restablece sus dos controles. Las flechas del teclado
+  permiten ajustes pequeños cuando el gráfico tiene el foco.
+- Pulsar el teclado de pantalla activa Con teclas. **Silenciar** libera las notas
+  y el sustain; es un botón de emergencia MIDI, no un mute de otras pistas del DAW.
+
+VOZ contiene análisis, identidad y consonantes; SYNTH contiene osciladores y envolvente;
+FX agrupa carácter, tono y estéreo; MOTION controla el movimiento; SALIDA contiene
+puerta por nivel, mezclas, ganancias y la duración del cierre MIDI. Los controles que
+no participan en el modo elegido aparecen atenuados.
+
+**Mix**, cuando Solo efecto está desactivado, usa curvas equal-power. **Vocoder amount** combina transferencia espectral con
 carrier gobernado por el volumen de la voz. **Voice mix** agrega voz original y
-**Carrier mix** agrega carrier. Todos respetan el gate del modulador en la cadena procesada.
+**Carrier mix** agrega carrier. Todos respetan la puerta por nivel del modulador; el corte MIDI se aplica después de la mezcla y los efectos, también a la señal original.
 En el modo **Voz**, Amount determina la cantidad de transformación espectral; el
 sintetizador, Voice mix, Carrier mix y la compensación de presets de vocoder quedan
 fuera de la cadena. Mix al 0% reproduce la voz elegida, incluyendo la voz de sidechain.
@@ -140,7 +154,7 @@ el nombre que escribas; **Delete** permite borrar únicamente presets personales
 confirmación. **Reset** recupera el sonido inicial conservando tus conexiones y ganancias.
 
 Al cambiar de preset se conservan la entrada de voz, Voz/Synth/Externo, Drone/MIDI, las ganancias de entrada/salida
-y Bypass. Las notas/acordes del Drone sí forman parte del sonido. Los proyectos del DAW
+y Bypass, además de Solo efecto, Cortar al soltar y Key release. Las notas/acordes del Drone sí forman parte del sonido. Los proyectos del DAW
 guardan sus parámetros completos aunque luego borres un preset personal.
 
 Los presets de usuario y favoritos se guardan en
@@ -177,7 +191,7 @@ no se certifica una compilación de Windows que no se haya ejecutado.
 
 ## Validación y arquitectura
 
-- [Cambios y validación de la versión 0.2.0](Docs/RELEASE-0.2.md).
+- [Cambios y validación de la versión 0.3.0](Docs/RELEASE-0.3.md).
 - [Resultados y límites de la versión inicial](Docs/VALIDATION.md).
 - [Arquitectura DSP, sincronía y latencia](Docs/ARCHITECTURE.md).
 - [Ubicación de datos y configuración](Docs/CONFIGURATION.md).
@@ -191,3 +205,16 @@ El motor no reserva memoria ni toma locks en `processBlock`.
 JUCE no es MIT: hay que disponer de la licencia comercial que corresponda para
 mantener un producto cerrado. Consulta [los términos oficiales](https://juce.com/legal/juce-8-licence/)
 antes de distribuirlo. No se incorporaron presets, interfaces ni código propietario de otros vocoders.
+
+## Sesiones anteriores y voz que se oye por separado
+
+Las sesiones guardadas antes de 0.3.0 mantienen sus valores y su mezcla: los nuevos
+interruptores se cargan apagados para no cambiar canciones existentes. Para el nuevo
+comportamiento, selecciona **Con teclas**, activa **Cortar al soltar** y **Solo efecto**,
+y vuelve a guardar tu canción. Los nuevos plugins arrancan con ambas protecciones activas;
+el AU MIDI además arranca en Con teclas y el efecto normal en Continuo.
+
+El plugin puede silenciar únicamente su propia salida. Si la pista que manda la voz
+por sidechain también sale al master, esa voz se seguirá oyendo por su camino separado.
+En Logic puedes dejar esa pista sin salida audible y conservar su envío al sidechain.
+El bypass conserva deliberadamente el audio original, como cualquier efecto desactivado.

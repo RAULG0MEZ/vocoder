@@ -23,9 +23,11 @@ float voice(int i, double sr)
                     0.2f * std::sin(2 * pi * 2100 * t));
 }
 #include "OriginalVoiceChecks.h"
+#include "PerformanceChecks.h"
 int main()
 {
     originalVoiceChecks();
+    performanceChecks();
     Envelope env;
     env.set(48000, 10, 100);
     for (int i = 0; i < 480; ++i)
@@ -90,6 +92,7 @@ int main()
             check(rms / 8192 > 1e-7, "Vocoder produces useful signal");
         }
     p = Params{};
+    p[P::wetOnly] = 0;
     p[P::mix] = 0;
     VocoderEngine dry;
     dry.prepare(48000, p);

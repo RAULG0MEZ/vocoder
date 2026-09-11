@@ -37,7 +37,7 @@
       <section class="hero wrap" aria-labelledby="hero-title">
         <div class="hero-topline">
           <span class="eyebrow">VOCAL EXPERIMENTS / VOL. 01</span
-          ><span class="release-tag">v0.2.0 · BETA PARA MACOS</span>
+          ><span class="release-tag">v0.3.0 · BETA PARA MACOS</span>
         </div>
         <div class="hero-heading">
           <h1 id="hero-title">TU VOZ,<br /><span>FUERA DE ÓRBITA.</span></h1>
@@ -52,7 +52,7 @@
             </p>
             <a
               class="button primary"
-              href="https://github.com/RAULG0MEZ/vocoder/releases/download/v0.2.0/R-Vocoder-0.2.0-macOS.zip"
+              href="https://github.com/RAULG0MEZ/vocoder/releases/download/v0.3.0/R-Vocoder-0.3.0-macOS.zip"
               >Descargar para macOS <span aria-hidden="true">↓</span></a
             >
             <span class="download-meta">Apple Silicon + Intel · AU / VST3</span>
@@ -61,14 +61,14 @@
         <figure class="product-shot">
           <img
             src="./images/plugin.png"
-            alt="R-Vocoder en modo Voz: preset French Chrome, controles de carácter, claridad, formantes y anchura."
-            width="2200"
-            height="1400"
+            alt="R-Vocoder con teclado MIDI permanente, ocho controles principales y gráfico XY para moldear el sonido."
+            width="2640"
+            height="1680"
             fetchpriority="high"
           />
           <figcaption>
             <span>EL INSTRUMENTO. SIN FILTROS.</span
-            ><span>Interfaz real · R-Vocoder 0.2.0</span>
+            ><span>Interfaz real · R-Vocoder 0.3.0</span>
           </figcaption>
         </figure>
         <div class="spec-strip" aria-label="Características principales">
@@ -193,13 +193,14 @@
               <span class="eyebrow">DE LA IDEA AL SONIDO</span>
               <h3>MENOS MENÚS.<br />MÁS MÚSICA.</h3>
               <p>
-                Elige la voz de la pista o del sidechain. Dale forma con ocho
+                El teclado siempre a la vista. Dale forma a la voz con ocho
                 controles principales. Cambia de preset sin perder tus
                 conexiones.
               </p>
               <p class="muted">
-                Robots, coros, bajos vocales y texturas extrañas. Cien puntos de
-                partida; lo que viene después es tuyo.
+                Con teclas, el efecto suena mientras tocas. Solo efecto evita
+                mezclar voz limpia al cambiar de preset. Cien puntos de partida;
+                lo que viene después es tuyo.
               </p>
               <a
                 class="text-link"
@@ -211,13 +212,13 @@
             <figure>
               <img
                 src="./images/midi.png"
-                alt="Vista Synth del plugin con el teclado iluminando un acorde MIDI y los botones Pista y Sidechain."
-                width="2200"
-                height="1400"
+                alt="Interfaz de R-Vocoder con teclado permanente, espectro editable e inspector lateral de salida."
+                width="2640"
+                height="1680"
                 loading="lazy"
               />
               <figcaption>
-                El teclado refleja las notas MIDI que recibe.
+                Arrastra los bordes del espectro para cambiar su rango.
               </figcaption>
             </figure>
           </div>
@@ -239,15 +240,15 @@
           </p>
           <a
             class="button primary download-large"
-            href="https://github.com/RAULG0MEZ/vocoder/releases/download/v0.2.0/R-Vocoder-0.2.0-macOS.zip"
+            href="https://github.com/RAULG0MEZ/vocoder/releases/download/v0.3.0/R-Vocoder-0.3.0-macOS.zip"
             >Descargar R-Vocoder <span aria-hidden="true">↓</span></a
           >
           <p class="download-meta">
-            v0.2.0 beta · ZIP de 56 MB · macOS 11 o posterior
+            v0.3.0 beta · ZIP de 89 MB · macOS 11 o posterior
           </p>
           <a
             class="text-link small"
-            href="https://github.com/RAULG0MEZ/vocoder/releases/tag/v0.2.0"
+            href="https://github.com/RAULG0MEZ/vocoder/releases/tag/v0.3.0"
             >Notas de la versión y verificación del archivo ↗</a
           >
         </div>
@@ -280,7 +281,7 @@
             y pluginval nivel 10. Sigue pendiente completar las pruebas de uso
             en Logic y Ableton.
             <a
-              href="https://github.com/RAULG0MEZ/vocoder/blob/main/Docs/RELEASE-0.2.md"
+              href="https://github.com/RAULG0MEZ/vocoder/blob/main/Docs/RELEASE-0.3.md"
               >Ver validación</a
             >.
           </p>
@@ -316,8 +317,10 @@
                 <h4>¿Quieres tocar con MIDI?</h4>
                 <p>
                   En Logic, carga <strong>R-Vocoder MIDI</strong> en una pista
-                  de instrumento, selecciona tu voz en Side Chain y toca
-                  mientras se reproduce.
+                  de instrumento, selecciona tu voz en Side Chain y activa
+                  <strong>Con teclas</strong>.
+                  <strong>Cortar al soltar</strong> cierra el sonido entre
+                  notas; <strong>Solo efecto</strong> evita sumar voz limpia.
                 </p>
               </div>
             </li>
@@ -354,13 +357,31 @@
             </div>
           </details>
           <details>
+            <summary>¿Por qué todavía escucho la voz original?</summary>
+            <div>
+              <p>
+                Activa <strong>Solo efecto</strong> para quitar la voz limpia de
+                la mezcla del plugin. Para escuchar únicamente al tocar, elige
+                <strong>Con teclas</strong> y <strong>Cortar al soltar</strong>.
+              </p>
+              <p>
+                Si la pista que alimenta el sidechain también llega directamente
+                a la salida de tu DAW, la escucharás por esa otra ruta. Ajusta
+                su salida para que la voz se oiga únicamente a través del
+                vocoder.
+              </p>
+            </div>
+          </details>
+          <details>
             <summary>¿Necesito un teclado MIDI para usarlo?</summary>
             <div>
               <p>
                 No. El modo <strong>Voz</strong> procesa la grabación y conserva
-                su melodía. En Synth puedes usar Drone, el teclado en pantalla o
-                las notas MIDI de tu DAW. Las notas MIDI controlan el
-                sintetizador; no afinan la grabación en modo Voz.
+                su melodía. Selecciona <strong>Continuo</strong> para escucharlo
+                sin tocar. Con teclas puedes abrir y cerrar el efecto mediante
+                MIDI en cualquiera de los tres modos. En Synth las notas también
+                cambian la afinación; en Voz conservan la melodía de la
+                grabación.
               </p>
             </div>
           </details>

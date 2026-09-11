@@ -15,6 +15,8 @@ inline void originalVoiceChecks()
               "Neutral original-voice shaping preserves the waveform");
     }
     Params p;
+    p[P::midiGate] = 0;
+    p[P::wetOnly] = 0;
     p[P::voiceMode] = 1;
     p[P::motion] = 0;
     p[P::gateOn] = 0;

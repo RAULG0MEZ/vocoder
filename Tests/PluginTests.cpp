@@ -2,6 +2,7 @@
 #include "ProcessorChecks.h"
 #include "RenderPresets.h"
 #include "UserFlowChecks.h"
+#include "WorkspaceChecks.h"
 #include <iostream>
 #include <set>
 int checks = 0;
@@ -22,6 +23,7 @@ int main(int argc, char **argv)
                              juce::String(argv[1]) == "--render-voice");
     processorChecks();
     userFlowChecks();
+    workspaceChecks();
     RVocoderProcessor p;
     check(p.getNumPrograms() == 100, "100 factory programs");
     std::set<std::string> names, signatures;
@@ -105,7 +107,7 @@ int main(int argc, char **argv)
         p.setRateAndBufferSizeDetails(48000, 256);
         p.prepareToPlay(48000, 256);
         std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
-        editor->setSize(1100, 700);
+        editor->setSize(1320, 840);
         auto image = editor->createComponentSnapshot(editor->getLocalBounds(), true, 2);
         juce::FileOutputStream out(
             juce::File::getCurrentWorkingDirectory().getChildFile("build/ui-preview.png"));
@@ -154,11 +156,16 @@ int main(int argc, char **argv)
             click("Synth");
             click("SYNTH");
             shot("ui-midi.png");
-            click("MAIN");
+            click("VOZ");
             click("Voz");
             click("Sidechain");
             shot("ui-voice.png");
-            editor->setSize(960, 640);
+            click("Espectro");
+            click("SALIDA");
+            shot("ui-spectrum.png");
+            click("XY");
+            click("VOZ");
+            editor->setSize(1080, 760);
             shot("ui-minimum.png");
         }
     }

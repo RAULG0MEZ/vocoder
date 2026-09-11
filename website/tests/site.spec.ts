@@ -10,7 +10,7 @@ test("download is accessible without JavaScript and assets resolve below the rep
     page.getByRole("link", { name: "Descargar para macOS" }),
   ).toHaveAttribute(
     "href",
-    "https://github.com/RAULG0MEZ/vocoder/releases/download/v0.2.0/R-Vocoder-0.2.0-macOS.zip",
+    "https://github.com/RAULG0MEZ/vocoder/releases/download/v0.3.0/R-Vocoder-0.3.0-macOS.zip",
   );
   for (const image of await page.locator("img").all()) {
     await image.scrollIntoViewIfNeeded();

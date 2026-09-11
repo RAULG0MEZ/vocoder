@@ -17,6 +17,11 @@ class MidiMonitor
     }
     void observe(const std::uint8_t *data, int length) noexcept
     {
+        if (length > 0 && data[0] == 0xff)
+        {
+            reset();
+            return;
+        }
         if (length < 3)
             return;
         const auto type = data[0] & 0xf0;

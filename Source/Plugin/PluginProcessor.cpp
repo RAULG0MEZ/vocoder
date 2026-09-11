@@ -89,6 +89,7 @@ void RVocoderProcessor::prepareToPlay(double sampleRate, int)
     snapshot = readParameters();
     engine.prepare(sampleRate, snapshot);
     midiMonitor.reset();
+    meters.clear();
     setLatencySamples(rv::dsp::VocoderEngine::latency);
 }
 void RVocoderProcessor::processBlock(juce::AudioBuffer<float> &b, juce::MidiBuffer &m)
@@ -203,7 +204,8 @@ void RVocoderProcessor::loadPreset(const Preset &preset, bool preserveRouting)
     auto p = preset.parameters;
     const auto old = readParameters();
     if (preserveRouting)
-        for (auto id : {P::route, P::voiceMode, P::synthMode, P::inputGain, P::outputGain, P::bypass})
+        for (auto id : {P::route, P::voiceMode, P::synthMode, P::inputGain, P::outputGain, P::bypass,
+                        P::midiGate, P::midiGateRelease, P::wetOnly})
             p[id] = old[id];
     if (midiEdition)
         p[P::route] = 3;
@@ -298,8 +300,12 @@ void RVocoderProcessor::setStateInformation(const void *data, int size)
         for (const auto &d : definitions)
         {
             auto child = state.getChildWithProperty("id", d.id);
+            // Existing songs retain their original mix and MIDI leakage behavior.
+            // New instances default to the two protections; both are visible in the editor.
+            const bool legacySwitch = juce::String(d.id) == "wetOnly" || juce::String(d.id) == "midiGate";
+            const float fallback = legacySwitch ? 0.f : d.initial;
             const float value =
-                child.isValid() ? static_cast<float>(child.getProperty("value", d.initial)) : d.initial;
+                child.isValid() ? static_cast<float>(child.getProperty("value", d.initial)) : fallback;
             juce::ValueTree parameter("PARAM");
             parameter.setProperty("id", d.id, nullptr);
             parameter.setProperty("value", std::isfinite(value) ? std::clamp(value, d.min, d.max) : d.initial,
