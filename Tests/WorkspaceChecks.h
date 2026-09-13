@@ -4,35 +4,77 @@
 inline void workspaceChecks()
 {
     using namespace rv;
+    for (const char *asset : {"chassis_png", "knob_png", "button_png", "rack_png", "glass_png"})
+        check(hardware::artwork(asset).isValid(), "All five hardware materials are embedded in the plugin");
     RVocoderProcessor p;
     std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
-    auto click = [&](const char *id)
-    {
-        auto *button = dynamic_cast<juce::TextButton *>(editor->findChildWithID(id));
-        check(button != nullptr && button->onClick != nullptr, "Inspector button exists");
-        button->onClick();
-    };
     auto *keyboard = editor->findChildWithID("performance-keyboard");
     auto *canvas = dynamic_cast<SoundCanvas *>(editor->findChildWithID("sound-canvas"));
-    check(keyboard != nullptr && canvas != nullptr, "Keyboard and sound canvas exist in the opening view");
+    auto *presets = dynamic_cast<juce::ComboBox *>(editor->findChildWithID("preset-selector"));
+    check(keyboard != nullptr && canvas != nullptr && presets != nullptr,
+          "Permanent performance controls and compact preset selector exist");
+    std::vector<ParameterRack *> racks;
+    for (auto *child : editor->getChildren())
+        if (auto *rack = dynamic_cast<ParameterRack *>(child))
+            racks.push_back(rack);
+    check(racks.size() == 4, "All four rack categories are visible together");
+    std::array<int, parameterCount> counts{};
+    std::function<void(juce::Component *, bool)> inspect = [&](juce::Component *parent, bool geometry)
+    {
+        check(dynamic_cast<juce::Viewport *>(parent) == nullptr &&
+                  dynamic_cast<juce::ListBox *>(parent) == nullptr,
+              "No scrolling panels or permanent preset browser in the editor");
+        if (auto *control = dynamic_cast<ParameterControl *>(parent); control && !geometry)
+            ++counts[index(control->parameterId())];
+        for (auto *child : parent->getChildren())
+        {
+            if (geometry && child->isVisible())
+                check(parent->getLocalBounds().contains(child->getBounds()),
+                      "Every visible control fits its panel without clipping");
+            if (!geometry || child->isVisible())
+                inspect(child, geometry);
+        }
+    };
+    inspect(editor.get(), false);
+    for (std::size_t i = 0; i < parameterCount; ++i)
+    {
+        const auto id = static_cast<P>(i);
+        const bool global = id == P::route || id == P::bypass || id == P::voiceMode || id == P::synthMode ||
+                            id == P::midiGate || id == P::wetOnly;
+        check(counts[i] == (global ? 0 : 1),
+              "Each existing parameter has exactly one permanent control or a global selector");
+    }
     for (const auto size :
-         {juce::Point<int>{1080, 760}, juce::Point<int>{1320, 840}, juce::Point<int>{1800, 1200}})
+         {juce::Point<int>{1080, 760}, juce::Point<int>{1320, 840}, juce::Point<int>{1800, 1100}})
     {
         editor->setSize(size.x, size.y);
-        for (int i = 0; i < 5; ++i)
-        {
-            const auto id = "detail-" + juce::String(i);
-            click(id.toRawUTF8());
-            check(keyboard->isVisible() && keyboard->getHeight() >= 60,
-                  "Keyboard remains visible in every inspector and size");
-            check(canvas->isVisible() && !canvas->getBounds().intersects(keyboard->getBounds()),
-                  "Visual editing never overlaps the keyboard");
-            for (auto *child : editor->getChildren())
-                if (child->isVisible())
-                    check(editor->getLocalBounds().contains(child->getBounds()),
-                          "Every top-level control stays inside the editor");
-        }
+        for (auto *rack : racks)
+            for (int page = 0; page < rack->pageCount(); ++page)
+            {
+                rack->selectPage(page);
+                inspect(editor.get(), true);
+                check(keyboard->isVisible() && keyboard->getHeight() >= 60,
+                      "Keyboard remains visible for every rack page and size");
+                check(canvas->isVisible() && !canvas->getBounds().intersects(keyboard->getBounds()),
+                      "Graph never replaces or overlaps the keyboard");
+            }
     }
+    for (auto *rack : racks)
+        rack->selectPage(0);
+    auto *next = dynamic_cast<juce::TextButton *>(editor->findChildWithID("preset-next"));
+    auto *prev = dynamic_cast<juce::TextButton *>(editor->findChildWithID("preset-prev"));
+    check(next && prev, "Preset arrows exist");
+    p.setCurrentProgram(0);
+    next->onClick();
+    check(p.presetId().toStdString() == p.presets.all()[1].id, "Next preset loads the adjacent sound");
+    prev->onClick();
+    check(p.presetId().toStdString() == p.presets.all()[0].id, "Previous returns to the original preset");
+    prev->onClick();
+    check(p.presetId().toStdString() == p.presets.all().back().id, "Preset arrows wrap around the library");
+    presets->setSelectedId(11, juce::dontSendNotification);
+    presets->onChange();
+    check(p.presetId().toStdString() == p.presets.all()[10].id,
+          "Categorized dropdown loads the selected preset");
     canvas->setMode(false);
     const auto before = p.readParameters();
     check(canvas->keyPressed(juce::KeyPress(juce::KeyPress::rightKey)),

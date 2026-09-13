@@ -1,6 +1,6 @@
 # Configuración y datos
 
-No hay credenciales, secretos, variables obligatorias, cuentas ni base de datos.
+El plugin no requiere credenciales, secretos, variables obligatorias, cuentas ni base de datos.
 El plugin arranca después de instalar el bundle AU/VST3.
 
 | Dato | Dónde se guarda |
@@ -16,3 +16,9 @@ El software no envía telemetría ni sube audio. Las rutas de datos en Windows u
 el directorio de aplicación del usuario que proporciona JUCE. La distribución firmada
 para terceros requeriría certificados del desarrollador fuera del repositorio; este
 proyecto no contiene ninguno.
+
+Los cinco materiales de la interfaz están incluidos mediante recursos binarios, sin
+archivos externos que instalar. Se generaron durante el diseño mediante la API de
+OpenAI (GPT Image 2.5 Sunburst); esa credencial de desarrollo no forma parte del
+plugin ni del repositorio. El registro privado de credenciales queda fuera de Git.
+Compilar y ejecutar los materiales ya incluidos no requiere acceso a esa API.

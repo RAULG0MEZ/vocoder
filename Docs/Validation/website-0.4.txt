@@ -1,0 +1,16 @@
+
+> r-vocoder-site@0.4.0 test
+> playwright test
+
+[WebServer] (node:27164) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:27165) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/site.spec.ts:3:1 › download is accessible without JavaScript and assets resolve below the repository path (792ms)
+  ✓  2 tests/site.spec.ts:28:1 › audio plays and switches versions at the same position; failed audio gives a useful fallback (587ms)
+  ✓  3 tests/site.spec.ts:68:1 › layout stays within desktop, tablet and narrow mobile screens (815ms)
+
+  3 passed (5.5s)

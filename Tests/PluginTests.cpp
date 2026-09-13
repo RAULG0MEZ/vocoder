@@ -154,19 +154,19 @@ int main(int argc, char **argv)
                 p.processBlock(audio, notes);
             }
             click("Synth");
-            click("SYNTH");
             shot("ui-midi.png");
-            click("VOZ");
             click("Voz");
             click("Sidechain");
             shot("ui-voice.png");
             click("Espectro");
-            click("SALIDA");
             shot("ui-spectrum.png");
             click("XY");
-            click("VOZ");
             editor->setSize(1080, 760);
             shot("ui-minimum.png");
+            for (auto *child : editor->getChildren())
+                if (auto *rack = dynamic_cast<ParameterRack *>(child))
+                    rack->selectPage(rack->pageCount() - 1);
+            shot("ui-advanced-minimum.png");
         }
     }
     std::cout << "PASS " << checks << " plugin integration checks\n";
