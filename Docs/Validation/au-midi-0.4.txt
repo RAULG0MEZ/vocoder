@@ -9,18 +9,18 @@ VALIDATING AUDIO UNIT: 'aumf' - 'Rvmi' - 'Rstk'
 --------------------------------------------------
 Manufacturer String: RSTK
 AudioUnit Name: R-Vocoder MIDI
-Component Version: 0.3.0 (0x300)
+Component Version: 0.4.0 (0x400)
 
 * * PASS
 --------------------------------------------------
 TESTING OPEN TIMES:
 COLD:
-Time to open AudioUnit:         5.853 ms
+Time to open AudioUnit:         15.575 ms
 WARM:
-Time to open AudioUnit:         1.109  ms
+Time to open AudioUnit:         1.034  ms
 This AudioUnit is a version 2 implementation.
 FIRST TIME:
-Time for initialization:        0.009 ms
+Time for initialization:        0.008 ms
 
 * * PASS
 --------------------------------------------------
@@ -65,7 +65,7 @@ VERIFYING SPECIAL PROPERTIES:
 
 VERIFYING CUSTOM UI
 Cocoa Views Available: 1
-  JUCE_AUCocoaViewClass_9cc323ce794ed57d
+  JUCE_AUCocoaViewClass_7b2b38d15eafdaa
     PASS
 
 HAS FACTORY PRESETS

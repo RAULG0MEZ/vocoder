@@ -51,6 +51,8 @@ Las pruebas de interfaz comprueban que cada parámetro tenga un único control, 
 cinco imágenes estén integradas, que no existan Viewports ni ListBoxes y que todos
 los grupos de los cuatro racks quepan a tres tamaños. Comprueban también flechas de
 presets, selección por categoría y arrastre del gráfico sobre parámetros reales.
+La validación de AU comprueba también que macOS anuncie la misma versión que el
+bundle compilado, para detectar un registro de componentes desactualizado.
 Se revisaron capturas Retina de la ventana normal y mínima, MIDI, Voz y Espectro.
 
 Compilación universal arm64 + x86_64: AU, AU MIDI, VST3 y Standalone. pluginval prueba

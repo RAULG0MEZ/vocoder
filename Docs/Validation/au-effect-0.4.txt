@@ -9,18 +9,18 @@ VALIDATING AUDIO UNIT: 'aufx' - 'Rvoc' - 'Rstk'
 --------------------------------------------------
 Manufacturer String: RSTK
 AudioUnit Name: R-Vocoder
-Component Version: 0.3.0 (0x300)
+Component Version: 0.4.0 (0x400)
 
 * * PASS
 --------------------------------------------------
 TESTING OPEN TIMES:
 COLD:
-Time to open AudioUnit:         4.729 ms
+Time to open AudioUnit:         14.938 ms
 WARM:
-Time to open AudioUnit:         1.027  ms
+Time to open AudioUnit:         1.207  ms
 This AudioUnit is a version 2 implementation.
 FIRST TIME:
-Time for initialization:        0.009 ms
+Time for initialization:        0.010 ms
 
 * * PASS
 --------------------------------------------------
@@ -70,7 +70,7 @@ VERIFYING SPECIAL PROPERTIES:
 
 VERIFYING CUSTOM UI
 Cocoa Views Available: 1
-  JUCE_AUCocoaViewClass_645ddf15d2c3ec63
+  JUCE_AUCocoaViewClass_a7a81992f51c0ed6
     PASS
 
 HAS FACTORY PRESETS
