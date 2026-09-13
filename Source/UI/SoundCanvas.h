@@ -1,4 +1,5 @@
 #pragma once
+#include "HardwareSkin.h"
 #include "Plugin/PluginProcessor.h"
 
 class SoundCanvas final : public juce::Component, public juce::SettableTooltipClient
@@ -42,7 +43,8 @@ class SoundCanvas final : public juce::Component, public juce::SettableTooltipCl
         const juce::Colour lime(0xffd7ed8d), muted(0xff9da7a5), blue(0xff78c9d1);
         const auto p = processor.readParameters();
         const auto area = plot();
-        g.fillAll(juce::Colour(0xff101719));
+        g.fillAll(juce::Colour(0xff0d1214));
+        hardware::texture(g, "glass_png", getLocalBounds().toFloat(), .16f);
         g.setColour(juce::Colour(0xff293336));
         for (int i = 0; i <= 4; ++i)
         {
@@ -103,10 +105,15 @@ class SoundCanvas final : public juce::Component, public juce::SettableTooltipCl
             g.setColour(lime);
             g.drawEllipse(point.x - 9, point.y - 9, 18, 18, 2);
             g.fillEllipse(point.x - 3, point.y - 3, 6, 6);
-            g.drawText("FORMANT  " + juce::String(p[rv::P::formant], 1) + " st", 18, 9, 180, 20,
+            const int half = getWidth() / 2;
+            g.setFont(juce::FontOptions(10));
+            g.drawText("FORMANT", 12, 4, half - 16, 15, juce::Justification::left);
+            g.drawText("CHARACTER", half, 4, half - 12, 15, juce::Justification::right);
+            g.setFont(juce::FontOptions(12));
+            g.drawText(juce::String(p[rv::P::formant], 1) + " st", 12, 20, half - 16, 15,
                        juce::Justification::left);
-            g.drawText("CHARACTER  " + juce::String(p[rv::P::character] * 100, 0) + "%", getWidth() - 198, 9,
-                       180, 20, juce::Justification::right);
+            g.drawText(juce::String(p[rv::P::character] * 100, 0) + "%", half, 20, half - 12, 15,
+                       juce::Justification::right);
             g.setColour(muted);
             g.drawText("-12 st", 18, getHeight() - 27, 80, 20, juce::Justification::left);
             g.drawText("+12 st", getWidth() - 98, getHeight() - 27, 80, 20, juce::Justification::right);

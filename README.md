@@ -2,11 +2,11 @@
 
 Vocoder creativo de RSTK para macOS. Incluye AU para pistas de audio, AU controlado
 por MIDI para Logic, VST3 y una aplicación independiente. Compilación universal
-Apple Silicon + Intel, macOS 11 o posterior. Versión 0.3.0.
+Apple Silicon + Intel, macOS 11 o posterior. Versión 0.4.0.
 
 **[Web y descarga](https://raulg0mez.github.io/vocoder/)** ·
-**[Descargar ZIP para macOS](https://github.com/RAULG0MEZ/vocoder/releases/download/v0.3.0/R-Vocoder-0.3.0-macOS.zip)** ·
-[Release 0.3.0 y SHA-256](https://github.com/RAULG0MEZ/vocoder/releases/tag/v0.3.0)
+**[Descargar ZIP para macOS](https://github.com/RAULG0MEZ/vocoder/releases/download/v0.4.0/R-Vocoder-0.4.0-macOS.zip)** ·
+[Release 0.4.0 y SHA-256](https://github.com/RAULG0MEZ/vocoder/releases/tag/v0.4.0)
 
 Para el paquete descargado: descomprime el ZIP, ejecuta `Install.command` y vuelve
 a abrir tu DAW. Esta beta tiene firma ad hoc y no está notarizada por Apple; consulta
@@ -15,7 +15,7 @@ la sección de instalación de la web si macOS bloquea su apertura.
 **Estado:** compilado, instalado y aprobado por auval y pluginval nivel 10.
 Disponible para evaluación; falta completar la audición y el recorrido real dentro
 de Logic/Ableton antes de declararlo listo para producción. Consulta los
-[resultados y pendientes](Docs/RELEASE-0.3.md).
+[resultados y pendientes](Docs/RELEASE-0.4.md).
 
 ## Empieza a cantar
 
@@ -25,9 +25,11 @@ de Logic/Ableton antes de declararlo listo para producción. Consulta los
    la grabación, o **Synth** para el vocoder clásico con sintetizador interno.
 4. Prueba **French Chrome**, **Classic Robot**, **Pop Robot** o **Wide Choir**.
 5. Ajusta **Clarity**, **Formant**, **Width** y **Mix**. Si el ruido abre el efecto,
-   sube **Threshold** en VOCODER → Gate.
+   sube **Threshold** en VOZ → Gate de voz.
 
-El plugin no requiere internet, cuentas, secretos ni configuración externa.
+El plugin no requiere internet, cuentas, secretos ni configuración externa. Los materiales
+del chasis, perillas, botones, racks y cristal van incluidos en los propios plugins.
+[Componentes y prompts de diseño](Docs/Design/ASSET-PROMPTS-0.4.md).
 
 **Sin sintetizador:** selecciona **Sonido: Voz**. Formant, Size, Identity, Gate, tono,
 anchura y efectos procesan la grabación original. No necesita MIDI y no cambia sus
@@ -110,14 +112,16 @@ Live presenta el selector de entrada auxiliar del plugin en su propio dispositiv
 ## Una sola vista para tocar
 
 El teclado MIDI, las entradas y ocho controles principales permanecen visibles.
-Los botones **VOZ / SYNTH / FX / MOTION / SALIDA** cambian únicamente el inspector
-lateral; el teclado, los macros y el gráfico siguen en su lugar.
+Los cuatro racks **VOZ / SYNTH / FX / MOTION** se ven juntos, sin barras de
+desplazamiento. Cada rack tiene un selector de grupo para sus ajustes secundarios.
+El teclado, los ocho macros, el gráfico y las ganancias permanecen en su lugar.
+La ventana abre a 1320 × 840 y se adapta desde 1080 × 760 hasta 1800 × 1100.
 
 - **Continuo:** procesa mientras llega voz; el sintetizador usa su nota/acorde Drone.
 - **Con teclas:** el sintetizador sigue MIDI. Con **Cortar al soltar**, cualquier modo
   (Voz, Synth o Externo) abre la salida con notas y la cierra al soltarlas. El sustain
   mantiene la salida abierta hasta levantar el pedal. La cola se ajusta con
-  **Key release** en SALIDA (70 ms por defecto, de 5 a 600 ms).
+  **Key release** en VOZ → Gate de voz (70 ms por defecto, de 5 a 600 ms).
 - **Solo efecto:** elimina la mezcla directa de voz limpia. Mix muestra 100% y Voice mix
   queda desactivado; para mezclar señal original, desmarca Solo efecto.
 - **XY:** arrastra el punto: horizontal = Formant, vertical = Character. Los controles
@@ -129,10 +133,12 @@ lateral; el teclado, los macros y el gráfico siguen en su lugar.
 - Pulsar el teclado de pantalla activa Con teclas. **Silenciar** libera las notas
   y el sustain; es un botón de emergencia MIDI, no un mute de otras pistas del DAW.
 
-VOZ contiene análisis, identidad y consonantes; SYNTH contiene osciladores y envolvente;
-FX agrupa carácter, tono y estéreo; MOTION controla el movimiento; SALIDA contiene
-puerta por nivel, mezclas, ganancias y la duración del cierre MIDI. Los controles que
-no participan en el modo elegido aparecen atenuados.
+VOZ contiene análisis, identidad, consonantes y puertas; SYNTH contiene osciladores,
+envolvente y Drone; FX agrupa carácter, tono, estéreo y mezclas; MOTION controla
+reloj y destinos de movimiento. Los controles que no participan en el modo elegido
+aparecen atenuados. **Entrada / Salida** permanecen arriba a la derecha: sus anillos
+muestran el nivel real del audio y retienen brevemente los picos; el indicador de la
+perilla señala la ganancia. Debajo aparecen los niveles de Voz y Carrier, también circulares.
 
 **Mix**, cuando Solo efecto está desactivado, usa curvas equal-power. **Vocoder amount** combina transferencia espectral con
 carrier gobernado por el volumen de la voz. **Voice mix** agrega voz original y
@@ -141,17 +147,19 @@ En el modo **Voz**, Amount determina la cantidad de transformación espectral; e
 sintetizador, Voice mix, Carrier mix y la compensación de presets de vocoder quedan
 fuera de la cadena. Mix al 0% reproduce la voz elegida, incluyendo la voz de sidechain.
 
-El medidor de correlación ayuda a vigilar la compatibilidad mono. Un valor negativo
+La lectura **Mono** junto al gráfico ayuda a vigilar la compatibilidad mono. Un valor negativo
 indica mucho contenido lateral: reduce Width/Spread/Unison width si el sonido pierde
 demasiado cuerpo al escuchar en mono. Formant, Size e Identity son transformaciones
 de la envolvente espectral, no conversión de voz neuronal.
 
 ## Presets personales
 
-La biblioteca incluye **100 presets originales en 10 categorías**, búsqueda por nombre,
-categoría o tags, anterior/siguiente, Shuffle y favoritos. **Save** guarda un sonido con
-el nombre que escribas; **Delete** permite borrar únicamente presets personales y pide
-confirmación. **Reset** recupera el sonido inicial conservando tus conexiones y ganancias.
+El selector superior reúne **100 presets originales en 10 categorías** y tus sonidos
+personales. Las flechas anterior/siguiente recorren los sonidos sin abrir el menú.
+La estrella marca favoritos. El botón **…** permite mostrar solo favoritos, elegir
+un sonido al azar, guardar, borrar un preset personal o reiniciar el sonido.
+Borrar solicita confirmación y no permite eliminar presets de fábrica. Reiniciar
+conserva tus conexiones, ganancias y preferencias de interpretación.
 
 Al cambiar de preset se conservan la entrada de voz, Voz/Synth/Externo, Drone/MIDI, las ganancias de entrada/salida
 y Bypass, además de Solo efecto, Cortar al soltar y Key release. Las notas/acordes del Drone sí forman parte del sonido. Los proyectos del DAW
@@ -191,7 +199,7 @@ no se certifica una compilación de Windows que no se haya ejecutado.
 
 ## Validación y arquitectura
 
-- [Cambios y validación de la versión 0.3.0](Docs/RELEASE-0.3.md).
+- [Cambios y validación de la versión 0.4.0](Docs/RELEASE-0.4.md).
 - [Resultados y límites de la versión inicial](Docs/VALIDATION.md).
 - [Arquitectura DSP, sincronía y latencia](Docs/ARCHITECTURE.md).
 - [Ubicación de datos y configuración](Docs/CONFIGURATION.md).
