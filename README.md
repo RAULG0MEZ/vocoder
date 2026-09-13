@@ -2,20 +2,24 @@
 
 Vocoder creativo de RSTK para macOS. Incluye AU para pistas de audio, AU controlado
 por MIDI para Logic, VST3 y una aplicación independiente. Compilación universal
-Apple Silicon + Intel, macOS 11 o posterior. Versión 0.4.0.
+Apple Silicon + Intel, macOS 11 o posterior. Versión 0.4.1.
 
 **[Web y descarga](https://raulg0mez.github.io/vocoder/)** ·
-**[Descargar ZIP para macOS](https://github.com/RAULG0MEZ/vocoder/releases/download/v0.4.0/R-Vocoder-0.4.0-macOS.zip)** ·
-[Release 0.4.0 y SHA-256](https://github.com/RAULG0MEZ/vocoder/releases/tag/v0.4.0)
+**[Descargar ZIP para macOS](https://github.com/RAULG0MEZ/vocoder/releases/download/v0.4.1/R-Vocoder-0.4.1-macOS.zip)** ·
+[Release 0.4.1 y SHA-256](https://github.com/RAULG0MEZ/vocoder/releases/tag/v0.4.1)
 
 Para el paquete descargado: descomprime el ZIP, ejecuta `Install.command` y vuelve
 a abrir tu DAW. Esta beta tiene firma ad hoc y no está notarizada por Apple; consulta
 la sección de instalación de la web si macOS bloquea su apertura.
 
-**Estado:** compilado, instalado y aprobado por auval y pluginval nivel 10.
+**Estado:** compilado e instalado; AU y AU MIDI aprobados por auval. El motor
+conserva la validación de 0.4 con pluginval nivel 10.
 Disponible para evaluación; falta completar la audición y el recorrido real dentro
 de Logic/Ableton antes de declararlo listo para producción. Consulta los
 [resultados y pendientes](Docs/RELEASE-0.4.md).
+
+El encabezado de la interfaz muestra **ROSMÁN**, con **Vocoder** debajo.
+[Nota de la versión 0.4.1](Docs/RELEASE-0.4.1.md).
 
 ## Empieza a cantar
 

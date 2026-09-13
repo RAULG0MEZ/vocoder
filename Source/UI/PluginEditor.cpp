@@ -445,10 +445,11 @@ RVocoderEditor::RVocoderEditor(RVocoderProcessor &p)
     setLookAndFeel(&look);
     setOpaque(true);
     setResizable(true, true);
-    brand.setText("R / VOCODER", juce::dontSendNotification);
-    brand.setFont(font(22, true));
+    brand.setText(juce::String::fromUTF8("ROSMÁN"), juce::dontSendNotification);
+    brand.setFont(font(26, true));
     addAndMakeVisible(brand);
-    subtitle.setFont(font(9));
+    subtitle.setText("Vocoder", juce::dontSendNotification);
+    subtitle.setFont(font(12));
     subtitle.setColour(juce::Label::textColourId, muted);
     addAndMakeVisible(subtitle);
     status.setFont(font(11));
@@ -875,9 +876,8 @@ void RVocoderEditor::timerCallback()
                                : (routing.sound == SoundSource::external
                                       ? "CARRIER EXTERNO"
                                       : (p[P::synthMode] > .5f ? "SYNTH MIDI" : "SYNTH DRONE"));
-    subtitle.setText(juce::String(bands) + " BANDS  /  " + soundName + "  /  " +
-                         juce::String(processor.getSampleRate() / 1000, 1) + " kHz",
-                     juce::dontSendNotification);
+    subtitle.setTooltip(juce::String(bands) + " BANDS  /  " + soundName + "  /  " +
+                        juce::String(processor.getSampleRate() / 1000, 1) + " kHz");
     if (const auto seq = processor.midiMonitor.sequence(); seq != lastMidiSequence)
     {
         lastMidiSequence = seq;
